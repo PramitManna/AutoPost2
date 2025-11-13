@@ -12,6 +12,7 @@ export default function DashboardPage() {
   const [result, setResult] = useState<string | null>(null);
   const [uploadedImages, setUploadedImages] = useState<File[]>([]);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [imagePublicIds, setImagePublicIds] = useState<string[]>([]);
   const [caption, setCaption] = useState('');
   const [generatedCaption, setGeneratedCaption] = useState('');
   const [isGeneratingCaption, setIsGeneratingCaption] = useState(false);
@@ -26,6 +27,29 @@ export default function DashboardPage() {
   // Auto-detect post type based on number of uploaded images
   const postType = uploadedImages.length > 1 ? 'multiple' : 'single';
 
+  // Helper function to delete images from Cloudinary after successful posting
+  const cleanupImages = async (publicIds: string[]) => {
+    console.log('🧹 Cleaning up uploaded images from Cloudinary...');
+    
+    for (const publicId of publicIds) {
+      try {
+        const response = await fetch(`/api/upload/delete?publicId=${encodeURIComponent(publicId)}`, {
+          method: 'DELETE',
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          console.log(`✅ Deleted image ${publicId} from Cloudinary:`, data.result);
+        } else {
+          const errorData = await response.json();
+          console.warn(`⚠️ Failed to delete ${publicId}:`, errorData.error);
+        }
+      } catch (error) {
+        console.warn(`⚠️ Network error deleting ${publicId}:`, error);
+      }
+    }
+  };
+
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files) return;
@@ -36,6 +60,7 @@ export default function DashboardPage() {
 
     // Convert images to URLs for preview and posting
     const urls: string[] = [];
+    const publicIds: string[] = [];
     const warnings: string[] = [];
     
     for (let i = 0; i < fileArray.length; i++) {
@@ -55,6 +80,7 @@ export default function DashboardPage() {
         if (response.ok) {
           const data = await response.json();
           urls.push(data.url);
+          publicIds.push(data.filename); // filename contains the public_id
           
           if (data.warning) {
             warnings.push(data.warning);
@@ -62,6 +88,7 @@ export default function DashboardPage() {
           
           console.log(`✅ Image ${i + 1} processed and uploaded:`, {
             url: data.url,
+            publicId: data.filename,
             size: `${(data.size / 1024 / 1024).toFixed(2)}MB`,
             dimensions: data.dimensions,
             provider: data.provider
@@ -80,6 +107,7 @@ export default function DashboardPage() {
     }
     
     setImageUrls(urls);
+    setImagePublicIds(publicIds);
     
     if (warnings.length > 0) {
       setResult(`⚠️ ${warnings[0]} Images are ready for posting.`);
@@ -88,9 +116,16 @@ export default function DashboardPage() {
     }
   };
 
-  const clearImages = () => {
+  const clearImages = async (shouldCleanup = false) => {
+    // Optionally cleanup images from Cloudinary if requested
+    if (shouldCleanup && imagePublicIds.length > 0) {
+      console.log('🧹 Cleaning up images during manual clear...');
+      await cleanupImages(imagePublicIds);
+    }
+    
     setUploadedImages([]);
     setImageUrls([]);
+    setImagePublicIds([]);
     setCaption('');
     setGeneratedCaption('');
     setShowPreview(false);
@@ -166,7 +201,12 @@ export default function DashboardPage() {
         
         if (data.success) {
           const link = `https://facebook.com/${data.postId.replace("_", "/posts/")}`;
+          setResult(`✅ Posted to Facebook! Cleaning up temporary files...`);
+          
+          // Clean up images from Cloudinary after successful posting
+          await cleanupImages(imagePublicIds);
           setResult(link);
+          console.log('✅ Facebook post published and images cleaned up');
         } else {
           setResult("❌ Failed to publish: " + JSON.stringify(data.error));
         }
@@ -186,7 +226,12 @@ export default function DashboardPage() {
         
         if (data.success) {
           const link = `https://facebook.com/${data.postId.replace("_", "/posts/")}`;
+          setResult(`✅ Facebook carousel posted! Cleaning up temporary files...`);
+          
+          // Clean up images from Cloudinary after successful posting
+          await cleanupImages(imagePublicIds);
           setResult(link);
+          console.log('✅ Facebook carousel post published and images cleaned up');
         } else {
           setResult("❌ Failed to publish: " + JSON.stringify(data.error));
         }
@@ -245,7 +290,12 @@ export default function DashboardPage() {
       const data = await response.json();
       
       if (response.ok) {
+        setResult(`✅ Posted to Instagram! Cleaning up temporary files...`);
+        
+        // Clean up images from Cloudinary after successful posting
+        await cleanupImages(imagePublicIds);
         setResult(`✅ Posted to Instagram successfully! Post ID: ${data.postId || data.mediaId}`);
+        console.log(`✅ Instagram ${postType} post published and images cleaned up`);
       } else {
         setResult(`❌ Instagram posting failed: ${data.error}`);
       }
@@ -298,7 +348,7 @@ export default function DashboardPage() {
                       {postType === 'multiple' && ' (Carousel)'}
                     </span>
                     <button
-                      onClick={clearImages}
+                      onClick={() => clearImages(false)}
                       className="text-xs text-red-600 hover:text-red-800"
                     >
                       Clear
