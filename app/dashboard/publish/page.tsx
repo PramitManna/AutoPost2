@@ -34,6 +34,11 @@ export default function PublishPage() {
 
     const session = getWorkflowSession();
     if (session) {
+      console.log('Workflow session:', {
+        imageUrls: session.imageUrls,
+        originalImageUrls: session.originalImageUrls,
+        imagePublicIds: session.imagePublicIds
+      });
       setWorkflow(session);
     }
   }, [router, connected]);
@@ -179,26 +184,66 @@ export default function PublishPage() {
               <div className="space-y-2">
                 <p className="text-sm font-medium text-gray-600">Images ({workflow.imageUrls.length}):</p>
                 {workflow.imageUrls.length === 1 ? (
-                  <Image
-                    src={workflow.imageUrls[0]}
-                    alt="Preview"
-                    className="w-full rounded-lg"
-                    width={1080}
-                    height={1080}
-                    unoptimized
-                  />
+                  workflow.imageUrls[0] ? (
+                    <div className="space-y-2">
+                      {/* Try both Image component and raw img as fallback */}
+                      <Image
+                        src={workflow.imageUrls[0]}
+                        alt="Preview"
+                        className="w-full rounded-lg"
+                        width={1080}
+                        height={1080}
+                        unoptimized
+                        onError={(e) => {
+                          console.error('Next.js Image failed to load:', workflow.imageUrls[0]);
+                          // Hide the Image component and show raw img
+                          e.currentTarget.style.display = 'none';
+                          const fallbackImg = e.currentTarget.parentElement?.querySelector('img.fallback-img') as HTMLImageElement;
+                          if (fallbackImg) {
+                            fallbackImg.style.display = 'block';
+                          }
+                        }}
+                        onLoad={() => console.log('Next.js Image loaded successfully:', workflow.imageUrls[0])}
+                      />
+                      {/* Fallback raw img element */}
+                      <img 
+                        className="fallback-img w-full rounded-lg" 
+                        style={{display: 'none'}} 
+                        src={workflow.imageUrls[0]} 
+                        alt="Preview fallback"
+                        onLoad={() => console.log('Fallback img loaded successfully:', workflow.imageUrls[0])}
+                        onError={() => console.error('Fallback img also failed:', workflow.imageUrls[0])}
+                      />
+                      <div className="mt-2 p-2 bg-gray-100 rounded text-xs break-all">
+                        <strong>URL:</strong> {workflow.imageUrls[0]}
+                      </div>
+                      <div className="mt-2 p-2 bg-blue-50 rounded text-xs">
+                        <strong>Test:</strong> <a href={workflow.imageUrls[0]} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">Open image in new tab</a>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="w-full h-64 bg-gray-200 rounded-lg flex items-center justify-center">
+                      <p className="text-gray-500">No image available</p>
+                    </div>
+                  )
                 ) : (
                   <div className="grid grid-cols-2 gap-2">
                     {workflow.imageUrls.slice(0, 4).map((url, idx) => (
                       <div key={idx} className="relative rounded-lg overflow-hidden">
-                        <Image
-                          src={url}
-                          alt={`Image ${idx + 1}`}
-                          width={400}
-                          height={400}
-                          className="w-full h-32 object-cover"
-                          unoptimized
-                        />
+                        {url ? (
+                          <Image
+                            src={url}
+                            alt={`Image ${idx + 1}`}
+                            width={400}
+                            height={400}
+                            className="w-full h-32 object-cover"
+                            unoptimized
+                          />
+                        ) : (
+                          <div className="w-full h-32 bg-gray-200 flex items-center justify-center">
+                            <p className="text-gray-500 text-xs">No image</p>
+                          </div>
+                        )}
                         {idx === 3 && workflow.imageUrls.length > 4 && (
                           <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
                             <span className="text-white text-lg font-bold">

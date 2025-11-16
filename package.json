@@ -17,6 +17,7 @@
     "@vercel/og": "^0.8.5",
     "axios": "^1.13.2",
     "cloudinary": "^2.8.0",
+    "html-to-image": "^1.8.0",
     "ioredis": "^5.8.2",
     "lru-cache": "^11.2.2",
     "mongoose": "^8.19.3",

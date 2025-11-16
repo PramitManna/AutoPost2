@@ -121,6 +121,8 @@ export default function UploadPage() {
       const workflow = updateWorkflowSession({
         imageUrls: urls,
         imagePublicIds: publicIds,
+        originalImageUrls: urls, // Store as original images for AI analysis
+        originalImagePublicIds: publicIds,
         previewUrls: urls, // Initialize with original URLs
         caption: '', // Clear old caption
         generatedCaption: '', // Clear old generated caption

@@ -51,21 +51,38 @@ async function performAIAnalysis(
 
         const base64Images = await Promise.all(
             imageBuffers.map(async (buffer) => {
-                const processedBuffer = await sharp(buffer)
-                    .resize(IMAGE_PROCESSING_CONFIG.size, IMAGE_PROCESSING_CONFIG.size, { 
-                      fit: 'contain', 
-                      background: { r: 255, g: 255, b: 255 } 
-                    })
-                    .normalize()
-                    .modulate({ brightness: 1.1, saturation: 1.2, hue: 0 })
-                    .sharpen({ sigma: 1, m1: 0.5, m2: 0.3 })
-                    .median(1)
-                    .linear(1.1, -(5 / 255))
-                    .jpeg({ 
-                      quality: IMAGE_PROCESSING_CONFIG.quality, 
-                      chromaSubsampling: '4:4:4' 
-                    })
-                    .toBuffer();
+                // Detect image format and process accordingly
+                const image = sharp(buffer);
+                const metadata = await image.metadata();
+                
+                let processedBuffer;
+                if (metadata.format === 'png') {
+                    // For PNG images (like templated images), keep as PNG
+                    processedBuffer = await image
+                        .resize(IMAGE_PROCESSING_CONFIG.size, IMAGE_PROCESSING_CONFIG.size, { 
+                          fit: 'contain', 
+                          background: { r: 255, g: 255, b: 255, alpha: 1 } 
+                        })
+                        .png({ quality: 90 })
+                        .toBuffer();
+                } else {
+                    // For JPEG and other formats, convert to JPEG
+                    processedBuffer = await image
+                        .resize(IMAGE_PROCESSING_CONFIG.size, IMAGE_PROCESSING_CONFIG.size, { 
+                          fit: 'contain', 
+                          background: { r: 255, g: 255, b: 255 } 
+                        })
+                        .normalize()
+                        .modulate({ brightness: 1.1, saturation: 1.2, hue: 0 })
+                        .sharpen({ sigma: 1, m1: 0.5, m2: 0.3 })
+                        .median(1)
+                        .linear(1.1, -(5 / 255))
+                        .jpeg({ 
+                          quality: IMAGE_PROCESSING_CONFIG.quality, 
+                          chromaSubsampling: '4:4:4' 
+                        })
+                        .toBuffer();
+                }
                 return processedBuffer.toString('base64');
             })
         );

@@ -30,20 +30,40 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(await file.arrayBuffer());
 
     console.log("🔄 Processing with Sharp...");
-    const processedBuffer = await sharp(buffer)
-      .resize(1920, 1920, {
-        fit: "inside",
-        withoutEnlargement: true,
-      })
-      .jpeg({
-        quality: 85,
-        progressive: true,
-      })
-      .toBuffer();
-
-    const base64Image = `data:image/jpeg;base64,${processedBuffer.toString(
-      "base64"
-    )}`;
+    
+    // Check if it's a PNG template (preserve format)
+    const isPngTemplate = file.name.includes('property-template') && file.name.endsWith('.png');
+    
+    let processedBuffer;
+    let base64Image;
+    
+    if (isPngTemplate) {
+      // For PNG templates, preserve PNG format and don't resize
+      processedBuffer = await sharp(buffer)
+        .png({
+          quality: 95,
+          compressionLevel: 6,
+        })
+        .toBuffer();
+      
+      base64Image = `data:image/png;base64,${processedBuffer.toString("base64")}`;
+      console.log("🎨 Processed as PNG template");
+    } else {
+      // For regular photos, convert to JPEG
+      processedBuffer = await sharp(buffer)
+        .resize(1920, 1920, {
+          fit: "inside",
+          withoutEnlargement: true,
+        })
+        .jpeg({
+          quality: 85,
+          progressive: true,
+        })
+        .toBuffer();
+      
+      base64Image = `data:image/jpeg;base64,${processedBuffer.toString("base64")}`;
+      console.log("📸 Processed as JPEG photo");
+    }
 
     // Generate unique cloudinary public_id
     const timestamp = Date.now();

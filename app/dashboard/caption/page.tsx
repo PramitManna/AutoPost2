@@ -47,8 +47,13 @@ export default function CaptionPage() {
       const formData = new FormData();
       
       // Fetch images from URLs and convert to blobs
-      for (let i = 0; i < workflow.imageUrls.length; i++) {
-        const response = await fetch(workflow.imageUrls[i]);
+      // Use original images for AI analysis, fallback to current images if no originals
+      const analysisUrls = workflow.originalImageUrls && workflow.originalImageUrls.length > 0 
+        ? workflow.originalImageUrls 
+        : workflow.imageUrls;
+      
+      for (let i = 0; i < analysisUrls.length; i++) {
+        const response = await fetch(analysisUrls[i]);
         const blob = await response.blob();
         const file = new File([blob], `image-${i}.jpg`, { type: 'image/jpeg' });
         formData.append(`image${i}`, file);

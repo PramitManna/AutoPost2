@@ -6,9 +6,11 @@
 export interface WorkflowData {
   imageUrls: string[];
   imagePublicIds: string[];
+  originalImageUrls: string[]; // Store original images for AI analysis
+  originalImagePublicIds: string[];
   previewUrls: string[];
   selectedTemplateId: string;
-  templateCustomValues: Record<string, string>;
+  templateCustomValues: Record<string, string | undefined>;
   caption: string;
   generatedCaption: string;
   // Listing Information
@@ -42,6 +44,8 @@ export function createEmptyWorkflow(sessionId: string): WorkflowData {
   return {
     imageUrls: [],
     imagePublicIds: [],
+    originalImageUrls: [],
+    originalImagePublicIds: [],
     previewUrls: [],
     selectedTemplateId: 'none',
     templateCustomValues: {},
