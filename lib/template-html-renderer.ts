@@ -44,7 +44,7 @@ export function generateLuxuryPropertyElement(
     <div style="
       position: relative;
       width: 100%;
-      height: 360px;
+      height: 540px;
       overflow: hidden;
     ">
       <img 
@@ -56,39 +56,41 @@ export function generateLuxuryPropertyElement(
           display: block;
         "
         alt="Property"
+        crossorigin="anonymous"
       />
       
       <!-- Gradient Overlay -->
       <div style="
         position: absolute;
         inset: 0;
-        background: linear-gradient(to bottom, transparent, rgba(20, 33, 61, 0.9));
+        background: linear-gradient(to bottom, transparent 40%, rgba(20, 33, 61, 0.9));
       "></div>
       
       <!-- Title Section -->
       <div style="
         position: absolute;
-        bottom: 32px;
+        bottom: 40px;
         left: 0;
         width: 100%;
         text-align: center;
-        padding: 0 16px;
+        padding: 0 24px;
       ">
         <h1 style="
-          font-size: 48px;
+          font-size: 56px;
           font-weight: bold;
           color: #f7d794;
           margin: 0;
-          letter-spacing: 3px;
-          text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+          letter-spacing: 4px;
+          text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
         ">
           ${propertyTitle}
         </h1>
         <p style="
-          color: #d0d0d0;
-          font-size: 14px;
-          margin: 8px 0 0 0;
+          color: #e0e0e0;
+          font-size: 16px;
+          margin: 12px 0 0 0;
           letter-spacing: 2px;
+          text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
         ">
           ${propertyDetails}
         </p>
@@ -99,21 +101,24 @@ export function generateLuxuryPropertyElement(
     <div style="
       background-color: #14213d;
       color: white;
-      padding: 24px;
-      padding-bottom: 32px;
+      padding: 32px 24px;
+      height: 540px;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
     ">
       <div style="
         display: grid;
         grid-template-columns: 1fr 1fr 1fr;
-        gap: 16px;
+        gap: 20px;
         text-align: center;
-        margin-bottom: 24px;
       ">
         <!-- Box 1: Featured -->
         <div style="
           background: rgba(255, 255, 255, 0.1);
           backdrop-filter: blur(10px);
-          padding: 16px;
+          padding: 20px;
           border-radius: 12px;
           border: 1px solid rgba(255, 255, 255, 0.2);
           box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -126,16 +131,16 @@ export function generateLuxuryPropertyElement(
             margin: 0;
           ">FEATURED</p>
           <h3 style="
-            font-size: 20px;
+            font-size: 22px;
             font-weight: bold;
-            margin: 8px 0 0 0;
+            margin: 10px 0 0 0;
           ">PREMIUM HOME</h3>
         </div>
 
         <!-- Box 2: Price -->
         <div style="
           background: white;
-          padding: 16px;
+          padding: 20px;
           border-radius: 12px;
           color: #1a1a1a;
           box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -148,9 +153,9 @@ export function generateLuxuryPropertyElement(
             margin: 0;
           ">START FROM</p>
           <h3 style="
-            font-size: 28px;
+            font-size: 32px;
             font-weight: bold;
-            margin: 8px 0;
+            margin: 10px 0;
           ">€195,000</h3>
           <p style="
             font-size: 12px;
@@ -162,7 +167,7 @@ export function generateLuxuryPropertyElement(
         <!-- Box 3: Mortgage -->
         <div style="
           background: white;
-          padding: 16px;
+          padding: 20px;
           border-radius: 12px;
           color: #1a1a1a;
           box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -175,9 +180,9 @@ export function generateLuxuryPropertyElement(
             margin: 0;
           ">MORTGAGE FROM</p>
           <h3 style="
-            font-size: 28px;
+            font-size: 32px;
             font-weight: bold;
-            margin: 8px 0;
+            margin: 10px 0;
           ">€880/Month</h3>
           <p style="
             font-size: 12px;
@@ -190,12 +195,12 @@ export function generateLuxuryPropertyElement(
       <!-- Contact Section -->
       <div style="
         text-align: center;
-        margin-bottom: 16px;
+        margin: 24px 0;
       ">
         <p style="
-          color: rgba(255, 255, 255, 0.8);
-          letter-spacing: 1px;
-          font-size: 14px;
+          color: rgba(255, 255, 255, 0.9);
+          letter-spacing: 1.5px;
+          font-size: 16px;
           margin: 0;
         ">
           BOOK A TOUR! • ${companyEmail}
@@ -205,14 +210,14 @@ export function generateLuxuryPropertyElement(
       <!-- Footer -->
       <div style="
         border-top: 1px solid rgba(255, 255, 255, 0.2);
-        padding-top: 16px;
+        padding-top: 20px;
         display: flex;
         justify-content: space-between;
         align-items: center;
-        color: rgba(255, 255, 255, 0.7);
-        font-size: 14px;
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 15px;
         flex-wrap: wrap;
-        gap: 12px;
+        gap: 16px;
       ">
         <p style="margin: 0;">📧 ${companyName}</p>
         <p style="margin: 0;">📞 ${companyPhone}</p>
