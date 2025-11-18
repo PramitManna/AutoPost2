@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { FiChevronLeft, FiLoader, FiEdit2, FiEye } from 'react-icons/fi';
+import Image from 'next/image';
+import { FiChevronLeft, FiLoader, FiEdit2, FiEye, FiImage, FiCheckCircle, FiInfo, FiZap, FiLayers } from 'react-icons/fi';
 import StepIndicator from '@/components/StepIndicator';
 import {
   getWorkflowSession,
@@ -37,6 +38,8 @@ export default function TemplatePage() {
   const [error, setError] = useState<string | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [imageOrder, setImageOrder] = useState<number[]>([]);
 
   const [previewElement, setPreviewElement] = useState<HTMLElement | null>(null);
 
@@ -51,6 +54,9 @@ export default function TemplatePage() {
     const session = getWorkflowSession();
     if (session) {
       setWorkflow(session);
+      
+      // Initialize image order
+      setImageOrder(session.imageUrls.map((_, idx) => idx));
 
       if (session.templateCustomValues) {
         setPropertyTitle(
@@ -86,21 +92,16 @@ export default function TemplatePage() {
     };
   }, [router]);
 
-  /** Insert preview element into previewRef */
   useEffect(() => {
     if (previewElement && previewRef.current) {
       previewRef.current.innerHTML = '';
       
-      // Set display block to ensure proper rendering
       previewElement.style.display = 'block';
       
       previewRef.current.appendChild(previewElement);
     }
   }, [previewElement]);
 
-  // ========================================================
-  // 🔥 FIXED PREVIEW GENERATOR — Auto-fit 1080×1080 templates
-  // ========================================================
   const generatePreview = async () => {
     if (!workflow || workflow.imageUrls.length === 0) {
       setError('No images available');
@@ -120,25 +121,24 @@ export default function TemplatePage() {
         companyAddress,
       };
 
-      // Generate the template element (1080×1080)
+      // Generate the template element using selected image
       const element = generateLuxuryPropertyElement(
-        workflow.imageUrls[0],
+        workflow.imageUrls[selectedImageIndex],
         customValues
       );
 
       // Calculate scale to fit 600px container
-      const scale = 600 / 1080; // ~0.556
+      const scale = 700 / 1080; // ~0.648
 
       // Apply transform to scale down and position correctly
       element.style.transform = `scale(${scale})`;
       element.style.transformOrigin = 'top left';
       element.style.display = 'block';
-      element.style.position = 'absolute';
-      element.style.top = '50%';
-      element.style.left = '50%';
-      element.style.marginTop = `${(-1080 * scale) / 2}px`; // Center vertically
-      element.style.marginLeft = `${(-1080 * scale) / 2}px`; // Center horizontally
-
+      // element.style.position = 'absolute';
+      // element.style.top = '50%';
+      // element.style.left = '50%';
+      // element.style.marginTop = `${(-1080 * scale) / 2}px`; // Center vertically
+      // element.style.marginLeft = `${(-1080 * scale) / 2}px`; // Center horizontally
       setPreviewElement(element);
       setShowPreview(true);
     } catch (error) {
@@ -150,7 +150,7 @@ export default function TemplatePage() {
   };
 
   // ========================================================
-  // APPLY TEMPLATE — Same as before
+  // APPLY TEMPLATE — Only to selected image, then reorder
   // ========================================================
   const handleApplyTemplate = async () => {
     if (!workflow || workflow.imageUrls.length === 0) {
@@ -171,54 +171,65 @@ export default function TemplatePage() {
         companyAddress,
       };
 
-      const uploadedUrls: string[] = [];
-      const uploadedPublicIds: string[] = [];
+      // Generate template for ONLY the selected image
+      const element = generateLuxuryPropertyElement(
+        workflow.imageUrls[selectedImageIndex],
+        customValues
+      );
 
-      for (let i = 0; i < workflow.imageUrls.length; i++) {
-        const element = generateLuxuryPropertyElement(
-          workflow.imageUrls[i],
-          customValues
-        );
+      // Position element properly for rendering
+      element.style.position = 'fixed';
+      element.style.top = '-9999px';
+      element.style.left = '-9999px';
+      element.style.zIndex = '-1';
+      
+      document.body.appendChild(element);
+      
+      // Wait a moment for fonts and images to load
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      const imageBlob = await renderTemplateToImage(element);
+      document.body.removeChild(element);
+      
+      // Debug: Check blob size
+      console.log('Rendered template blob size:', imageBlob.size, 'bytes');
 
-        // Position element properly for rendering
-        element.style.position = 'fixed';
-        element.style.top = '-9999px';
-        element.style.left = '-9999px';
-        element.style.zIndex = '-1';
-        
-        document.body.appendChild(element);
-        
-        // Wait a moment for fonts and images to load
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        const imageBlob = await renderTemplateToImage(element);
-        document.body.removeChild(element);
-        
-        // Debug: Check blob size
-        console.log(`Rendered template ${i} blob size:`, imageBlob.size, 'bytes');
+      const cloud = await uploadToCloudinary(
+        imageBlob,
+        `property-template-0`
+      );
 
-        const cloud = await uploadToCloudinary(
-          imageBlob,
-          `property-template-${i}`
-        );
-
-        console.log(`Template ${i} upload result:`, cloud);
-        
-        if (!cloud.url) {
-          throw new Error(`Failed to get URL for image ${i}`);
-        }
-
-        uploadedUrls.push(cloud.url);
-        uploadedPublicIds.push(cloud.publicId);
-        console.log(`Added URL ${i}:`, cloud.url);
+      console.log('Template upload result:', cloud);
+      
+      if (!cloud.url) {
+        throw new Error('Failed to get URL for templated image');
       }
+
+      // Reorder images according to imageOrder array
+      // The templated image will always be first
+      const reorderedUrls: string[] = [];
+      const reorderedPublicIds: string[] = [];
+      
+      // Add templated image first
+      reorderedUrls.push(cloud.url);
+      reorderedPublicIds.push(cloud.publicId);
+      
+      // Add other images in the specified order (excluding the selected one)
+      imageOrder.forEach((originalIndex) => {
+        if (originalIndex !== selectedImageIndex) {
+          reorderedUrls.push(workflow.imageUrls[originalIndex]);
+          reorderedPublicIds.push(workflow.imagePublicIds[originalIndex]);
+        }
+      });
+
+      console.log('Final image order:', reorderedUrls);
 
       // Preserve original images for AI analysis
       updateWorkflowSession({
         originalImageUrls: workflow.imageUrls, // Store current images as original
         originalImagePublicIds: workflow.imagePublicIds,
-        imageUrls: uploadedUrls, // Update with templated images
-        imagePublicIds: uploadedPublicIds,
+        imageUrls: reorderedUrls, // Templated image first, then others in order
+        imagePublicIds: reorderedPublicIds,
         selectedTemplateId: 'luxury-property',
         templateCustomValues: customValues as unknown as Record<string, string | undefined>,
       });
@@ -264,6 +275,91 @@ export default function TemplatePage() {
             </div>
           )}
 
+          {/* Image Selection & Reordering */}
+          <div className="mb-8 p-6 bg-blue-50 rounded-lg border border-blue-200">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <FiImage className="text-blue-600" />
+              Select Image for Template & Reorder
+            </h2>
+            <p className="text-sm text-gray-600 mb-4">
+              Choose which image to apply the template to (it will be the first in the carousel). Use the buttons to reorder other images.
+            </p>
+            
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+              {imageOrder.map((originalIndex, displayIndex) => (
+                <div
+                  key={originalIndex}
+                  className={`relative group cursor-pointer border-4 rounded-lg overflow-hidden transition-all ${
+                    selectedImageIndex === originalIndex
+                      ? 'border-blue-600 ring-4 ring-blue-200'
+                      : 'border-gray-200 hover:border-blue-400'
+                  }`}
+                  onClick={() => setSelectedImageIndex(originalIndex)}
+                >
+                  <Image
+                    src={workflow.imageUrls[originalIndex]}
+                    alt={`Image ${displayIndex + 1}`}
+                    className="w-full h-32 object-cover"
+                    width={200}
+                    height={128}
+                    unoptimized
+                  />
+                  
+                  {/* Selected Badge */}
+                  {selectedImageIndex === originalIndex && (
+                    <div className="absolute top-2 left-2 bg-blue-600 text-white text-xs font-bold px-2 py-1 rounded flex items-center gap-1">
+                      <FiCheckCircle size={12} /> Template
+                    </div>
+                  )}
+                  
+                  {/* Order Number */}
+                  <div className="absolute top-2 right-2 bg-black bg-opacity-60 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center">
+                    {displayIndex + 1}
+                  </div>
+                  
+                  {/* Reorder Buttons */}
+                  <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-60 p-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (displayIndex > 0) {
+                          const newOrder = [...imageOrder];
+                          [newOrder[displayIndex], newOrder[displayIndex - 1]] = 
+                          [newOrder[displayIndex - 1], newOrder[displayIndex]];
+                          setImageOrder(newOrder);
+                        }
+                      }}
+                      disabled={displayIndex === 0}
+                      className="flex-1 bg-white bg-opacity-90 text-black text-xs py-1 rounded disabled:opacity-30"
+                    >
+                      Prev
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (displayIndex < imageOrder.length - 1) {
+                          const newOrder = [...imageOrder];
+                          [newOrder[displayIndex], newOrder[displayIndex + 1]] = 
+                          [newOrder[displayIndex + 1], newOrder[displayIndex]];
+                          setImageOrder(newOrder);
+                        }
+                      }}
+                      disabled={displayIndex === imageOrder.length - 1}
+                      className="flex-1 bg-white bg-opacity-90 text-xs py-1 text-black rounded disabled:opacity-30"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            <p className="text-xs text-gray-500 mt-3 flex items-center gap-2">
+              <FiInfo className="text-blue-500" />
+              Click to select which image gets the template. Use arrow buttons to change order.
+            </p>
+          </div>
+
           {/* Form */}
           <div className="mb-8 p-6 bg-gray-50 rounded-lg border border-gray-200">
             <h2 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
@@ -302,7 +398,7 @@ export default function TemplatePage() {
                 <input
                   value={companyName}
                   onChange={(e) => setCompanyName(e.target.value)}
-                  className="w-full px-4 py-2 border rounded-lg bg-white"
+                  className="w-full px-4 py-2 border rounded-lg bg-white text-black"
                 />
               </div>
 
@@ -313,7 +409,7 @@ export default function TemplatePage() {
                 <input
                   value={companyEmail}
                   onChange={(e) => setCompanyEmail(e.target.value)}
-                  className="w-full px-4 py-2 border rounded-lg bg-white"
+                  className="w-full px-4 py-2 border rounded-lg bg-white text-black"
                 />
               </div>
 
@@ -324,7 +420,7 @@ export default function TemplatePage() {
                 <input
                   value={companyPhone}
                   onChange={(e) => setCompanyPhone(e.target.value)}
-                  className="w-full px-4 py-2 border rounded-lg bg-white"
+                  className="w-full px-4 py-2 border rounded-lg bg-white text-black"
                 />
               </div>
 
@@ -335,7 +431,7 @@ export default function TemplatePage() {
                 <input
                   value={companyAddress}
                   onChange={(e) => setCompanyAddress(e.target.value)}
-                  className="w-full px-4 py-2 border rounded-lg bg-white"
+                  className="w-full px-4 py-2 border rounded-lg bg-white text-black"
                 />
               </div>
             </div>
@@ -356,127 +452,6 @@ export default function TemplatePage() {
                   </>
                 )}
               </button>
-              
-              <button
-                onClick={async () => {
-                  try {
-                    console.log('Starting simple test...');
-                    
-                    // Check if html2canvas is loaded
-                    const win = window as unknown as { html2canvas?: (element: HTMLElement, options?: Record<string, unknown>) => Promise<HTMLCanvasElement> };
-                    if (!win.html2canvas) {
-                      console.error('html2canvas not loaded!');
-                      alert('html2canvas not loaded!');
-                      return;
-                    }
-                    console.log('html2canvas is loaded');
-                    
-                    // Create a simple test element
-                    const testDiv = document.createElement('div');
-                    testDiv.style.width = '200px';
-                    testDiv.style.height = '200px';
-                    testDiv.style.background = 'linear-gradient(45deg, red, blue)';
-                    testDiv.style.color = 'white';
-                    testDiv.style.fontSize = '20px';
-                    testDiv.style.display = 'flex';
-                    testDiv.style.alignItems = 'center';
-                    testDiv.style.justifyContent = 'center';
-                    testDiv.textContent = 'TEST';
-                    testDiv.style.position = 'fixed';
-                    testDiv.style.top = '-1000px';
-                    
-                    document.body.appendChild(testDiv);
-                    console.log('Test element created and added to DOM');
-                    
-                    // Try to capture it
-                    const canvas = await win.html2canvas(testDiv, {
-                      scale: 1,
-                      width: 200,
-                      height: 200,
-                      backgroundColor: 'white'
-                    });
-                    
-                    document.body.removeChild(testDiv);
-                    console.log('Canvas created:', canvas.width, 'x', canvas.height);
-                    
-                    // Convert to blob
-                    canvas.toBlob((blob: Blob | null) => {
-                      if (blob) {
-                        console.log('Blob created, size:', blob.size);
-                        const dataUrl = URL.createObjectURL(blob);
-                        window.open(dataUrl, '_blank');
-                      } else {
-                        console.error('Failed to create blob');
-                        alert('Failed to create blob');
-                      }
-                    }, 'image/png');
-                    
-                  } catch (err) {
-                    console.error('Simple test failed:', err);
-                    alert('Simple test failed: ' + (err as Error).message);
-                  }
-                }}
-                className="w-full px-4 py-3 bg-green-600 text-white rounded-lg text-sm"
-              >
-                🧪 Simple Test (Red/Blue Gradient)
-              </button>
-              
-              <button
-                onClick={async () => {
-                  if (!workflow) return;
-                  try {
-                    console.log('Testing actual template generation...');
-                    console.log('Using image URL:', workflow.imageUrls[0]);
-                    
-                    const customValues = { propertyTitle, propertyDetails, companyName, companyEmail, companyPhone, companyAddress };
-                    const element = generateLuxuryPropertyElement(workflow.imageUrls[0], customValues);
-                    
-                    console.log('Template element created:', element);
-                    console.log('Element dimensions:', element.style.width, element.style.height);
-                    
-                    // Add to DOM temporarily
-                    element.style.position = 'fixed';
-                    element.style.top = '-2000px';
-                    element.style.left = '0px';
-                    element.style.zIndex = '-999';
-                    
-                    document.body.appendChild(element);
-                    console.log('Element added to DOM');
-                    
-                    // Wait for images to load
-                    await new Promise(resolve => setTimeout(resolve, 2000));
-                    console.log('Waited for images to load');
-                    
-                    // Try to render with html2canvas
-                    const win = window as unknown as { html2canvas?: (element: HTMLElement, options?: Record<string, unknown>) => Promise<HTMLCanvasElement> };
-                    if (win.html2canvas) {
-                      const canvas = await win.html2canvas(element, {
-                        scale: 1,
-                        width: 1080,
-                        height: 1080,
-                        useCORS: true,
-                        allowTaint: true,
-                        backgroundColor: 'white'
-                      });
-                      
-                      document.body.removeChild(element);
-                      console.log('Canvas generated:', canvas.width, 'x', canvas.height);
-                      
-                      // Convert to data URL and open
-                      const dataUrl = canvas.toDataURL('image/png');
-                      console.log('Data URL length:', dataUrl.length);
-                      window.open(dataUrl, '_blank');
-                    }
-                    
-                  } catch (err) {
-                    console.error('Template test failed:', err);
-                    alert('Template test failed: ' + (err as Error).message);
-                  }
-                }}
-                className="w-full px-4 py-3 bg-purple-600 text-white rounded-lg text-sm"
-              >
-                🎨 Test Full Template Render
-              </button>
             </div>
           </div>
 
@@ -492,8 +467,9 @@ export default function TemplatePage() {
                 <div
                   ref={previewRef}
                   style={{
+                    border: '2px solid black',
                     width: '600px',
-                    height: '580px',
+                    height: '370px',
                     backgroundColor: 'white',
                     borderRadius: '12px',
                     overflow: 'hidden',
@@ -513,7 +489,7 @@ export default function TemplatePage() {
           <div className="pt-8 border-t flex gap-4">
             <button
               onClick={() => router.push('/dashboard/listing')}
-              className="px-6 py-3 bg-gray-100 rounded-lg"
+              className="px-6 py-3 bg-gray-200 rounded-lg text-black flex items-center"
             >
               <FiChevronLeft /> Back
             </button>
@@ -521,7 +497,7 @@ export default function TemplatePage() {
             <button
               onClick={handleApplyTemplate}
               disabled={!showPreview || loading}
-              className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg flex justify-center gap-2"
+              className="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg flex justify-center gap-2"
             >
               {loading ? (
                 <>

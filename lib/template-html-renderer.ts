@@ -1,7 +1,8 @@
-'use client';
 
 // HTML-to-Image Template Renderer
 // Converts HTML templates to images using html-to-image and uploads to Cloudinary
+import * as htmlToImage from 'html-to-image';
+import { toPng, toJpeg, toBlob, toPixelData, toSvg } from 'html-to-image';
 
 import type { TemplateCustomValues } from './templates';
 
@@ -12,6 +13,7 @@ export interface RenderOptions {
   quality?: number;
   pixelRatio?: number;
 }
+
 
 /**
  * Generate the luxury property template HTML element
@@ -30,204 +32,176 @@ export function generateLuxuryPropertyElement(
   } = customValues;
 
   const container = document.createElement('div');
-  container.style.cssText = `
+  container.style = `
     width: 1080px;
     height: 1080px;
     position: relative;
     overflow: hidden;
-    font-family: Arial, sans-serif;
-    background: white;
+    font-family: 'Inter', Arial, sans-serif;
+    background: #ffffff;
+    display: flex;
+    flex-direction: column;
   `;
 
   container.innerHTML = `
-    <!-- Top Image Section -->
+    <!-- HERO IMAGE -->
     <div style="
-      position: relative;
       width: 100%;
-      height: 540px;
+      height: 47%;
+      position: relative;
       overflow: hidden;
     ">
-      <img 
-        src="${imageUrl}" 
-        style="
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-          display: block;
-        "
-        alt="Property"
-        crossorigin="anonymous"
-      />
-      
-      <!-- Gradient Overlay -->
+      <img src="${imageUrl}" style="
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      " />
+
       <div style="
         position: absolute;
         inset: 0;
-        background: linear-gradient(to bottom, transparent 40%, rgba(20, 33, 61, 0.9));
+        background: linear-gradient(to bottom, rgba(0,0,0,0) 30%, rgba(0,0,0,0.6));
       "></div>
-      
-      <!-- Title Section -->
+
       <div style="
         position: absolute;
         bottom: 40px;
-        left: 0;
-        width: 100%;
+        left: 50%;
+        transform: translateX(-50%);
         text-align: center;
-        padding: 0 24px;
+        width: 100%;
       ">
         <h1 style="
-          font-size: 56px;
-          font-weight: bold;
-          color: #f7d794;
           margin: 0;
-          letter-spacing: 4px;
-          text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
+          font-size: 60px;
+          font-weight: 700;
+          letter-spacing: 3px;
+          color: #F5D68B;
+          text-shadow: 0 3px 10px rgba(0,0,0,0.4);
         ">
           ${propertyTitle}
         </h1>
+
         <p style="
-          color: #e0e0e0;
-          font-size: 16px;
-          margin: 12px 0 0 0;
+          margin: 12px 0 0;
+          font-size: 20px;
           letter-spacing: 2px;
-          text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+          color: #ffffffcc;
         ">
           ${propertyDetails}
         </p>
       </div>
     </div>
 
-    <!-- Information Boxes Section -->
+    <!-- CONTENT AREA -->
     <div style="
-      background-color: #14213d;
-      color: white;
-      padding: 32px 24px;
-      height: 540px;
+      width: 100%;
+      height: 53%;
+      background: #0F1A2B;
+      padding: 60px;
       box-sizing: border-box;
+      color: white;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
     ">
+
+      <!-- STATIC FEATURE BOXES -->
       <div style="
-        display: grid;
-        grid-template-columns: 1fr 1fr 1fr;
-        gap: 20px;
-        text-align: center;
+        display: flex;
+        justify-content: center;
+        gap: 40px;
+        margin-top: 10px;
       ">
-        <!-- Box 1: Featured -->
+        <!-- BOX A -->
         <div style="
-          background: rgba(255, 255, 255, 0.1);
+          padding: 26px 34px;
+          width: 280px;
+          border-radius: 18px;
+          background: rgba(255,255,255,0.06);
+          border: 1px solid rgba(245,214,139,0.45);
           backdrop-filter: blur(10px);
-          padding: 20px;
-          border-radius: 12px;
-          border: 1px solid rgba(255, 255, 255, 0.2);
-          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+          text-align: center;
         ">
           <p style="
-            font-size: 12px;
-            letter-spacing: 1px;
-            color: #ffd700;
+            color: #F5D68B;
+            font-size: 14px;
+            letter-spacing: 2px;
+            margin: 0 0 10px;
             font-weight: 600;
-            margin: 0;
           ">FEATURED</p>
+
           <h3 style="
-            font-size: 22px;
-            font-weight: bold;
-            margin: 10px 0 0 0;
+            margin: 0;
+            font-size: 32px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            color: #ffffff;
           ">PREMIUM HOME</h3>
         </div>
 
-        <!-- Box 2: Price -->
+        <!-- BOX B -->
         <div style="
-          background: white;
-          padding: 20px;
-          border-radius: 12px;
-          color: #1a1a1a;
-          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+          padding: 26px 34px;
+          width: 280px;
+          border-radius: 18px;
+          background: rgba(255,255,255,0.06);
+          border: 1px solid rgba(245,214,139,0.45);
+          backdrop-filter: blur(10px);
+          text-align: center;
         ">
           <p style="
-            font-size: 12px;
-            letter-spacing: 1px;
-            color: #d4a700;
+            color: #F5D68B;
+            font-size: 14px;
+            letter-spacing: 2px;
+            margin: 0 0 10px;
             font-weight: 600;
-            margin: 0;
-          ">START FROM</p>
-          <h3 style="
-            font-size: 32px;
-            font-weight: bold;
-            margin: 10px 0;
-          ">€195,000</h3>
-          <p style="
-            font-size: 12px;
-            color: #666;
-            margin: 0;
-          ">with private gardens</p>
-        </div>
+          ">HIGHLIGHT</p>
 
-        <!-- Box 3: Mortgage -->
-        <div style="
-          background: white;
-          padding: 20px;
-          border-radius: 12px;
-          color: #1a1a1a;
-          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        ">
-          <p style="
-            font-size: 12px;
-            letter-spacing: 1px;
-            color: #d4a700;
-            font-weight: 600;
-            margin: 0;
-          ">MORTGAGE FROM</p>
           <h3 style="
-            font-size: 32px;
-            font-weight: bold;
-            margin: 10px 0;
-          ">€880/Month</h3>
-          <p style="
-            font-size: 12px;
-            color: #666;
             margin: 0;
-          ">up to 30 years</p>
+            font-size: 32px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            color: #ffffff;
+          ">MODERN LIVING</h3>
         </div>
       </div>
 
-      <!-- Contact Section -->
-      <div style="
-        text-align: center;
-        margin: 24px 0;
-      ">
+      <!-- CONTACT -->
+      <div style="text-align: center; margin-top: 20px;">
         <p style="
-          color: rgba(255, 255, 255, 0.9);
-          letter-spacing: 1.5px;
-          font-size: 16px;
+          font-size: 20px;
+          letter-spacing: 2px;
           margin: 0;
+          color: rgba(255,255,255,0.9);
         ">
-          BOOK A TOUR! • ${companyEmail}
+          BOOK A TOUR • ${companyEmail}
         </p>
       </div>
 
-      <!-- Footer -->
+      <!-- FOOTER -->
       <div style="
-        border-top: 1px solid rgba(255, 255, 255, 0.2);
-        padding-top: 20px;
+        margin-top: 32px;
+        padding-top: 26px;
+        border-top: 1px solid rgba(255,255,255,0.2);
         display: flex;
         justify-content: space-between;
-        align-items: center;
-        color: rgba(255, 255, 255, 0.8);
-        font-size: 15px;
-        flex-wrap: wrap;
-        gap: 16px;
+        font-size: 18px;
+        opacity: 0.85;
       ">
-        <p style="margin: 0;">📧 ${companyName}</p>
+        <p style="margin: 0;">🏢 ${companyName}</p>
         <p style="margin: 0;">📞 ${companyPhone}</p>
-        <p style="margin: 0;">📌 ${companyAddress}</p>
+        <p style="margin: 0;">📍 ${companyAddress}</p>
       </div>
     </div>
   `;
 
   return container;
 }
+
+
+
 
 /**
  * Convert HTML element to image blob using html-to-image
