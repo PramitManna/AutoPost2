@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { FiLoader, FiZap, FiCheckCircle } from 'react-icons/fi';
 
-export default function DashboardPage() {
+function DashboardPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const connected = searchParams.get('connected');
@@ -67,5 +67,13 @@ export default function DashboardPage() {
         <p className="text-gray-600">Redirecting to upload...</p>
       </div>
     </main>
+  );
+}
+
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <DashboardPageContent />
+    </Suspense>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { FiChevronLeft, FiLoader, FiImage } from 'react-icons/fi';
 import Image from 'next/image';
@@ -9,7 +9,7 @@ import { getWorkflowSession, validateWorkflowStage, clearWorkflowSession } from 
 import { SiFacebook, SiInstagram } from 'react-icons/si';
 import type { WorkflowData } from '@/lib/workflow-session';
 
-export default function PublishPage() {
+function PublishPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const connected = searchParams.get('connected');
@@ -319,5 +319,13 @@ export default function PublishPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function PublishPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <PublishPageContent />
+    </Suspense>
   );
 }

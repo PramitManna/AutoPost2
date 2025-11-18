@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { FiUpload, FiLoader } from 'react-icons/fi';
 import StepIndicator from '@/components/StepIndicator';
@@ -12,7 +12,7 @@ import {
   updateWorkflowSession,
 } from '@/lib/workflow-session';
 
-export default function UploadPage() {
+function UploadPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const connected = searchParams.get('connected');
@@ -269,5 +269,13 @@ export default function UploadPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function UploadPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <UploadPageContent />
+    </Suspense>
   );
 }
