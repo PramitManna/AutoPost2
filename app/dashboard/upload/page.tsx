@@ -3,7 +3,10 @@
 import { useState, useRef, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { FiUpload, FiLoader } from 'react-icons/fi';
+import { motion } from 'framer-motion';
 import StepIndicator from '@/components/StepIndicator';
+import { Card } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
 import {
   generateSessionId,
   createEmptyWorkflow,
@@ -153,44 +156,46 @@ function UploadPageContent() {
   };
 
   return (
-    <main className="min-h-screen bg-gray-50">
+    <main className="min-h-screen bg-zinc-50 dark:bg-zinc-950 pb-20">
       <StepIndicator currentStep="upload" />
 
-      <div className="max-w-2xl mx-auto px-4 py-12 sm:px-6">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Upload Images</h1>
-            <p className="text-gray-600">
-              Select up to 10 images to get started. You can apply templates and add captions in the next steps.
+      <div className="max-w-3xl mx-auto px-4 py-12 sm:px-6">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <div className="mb-8 text-center">
+            <h1 className="text-3xl font-bold text-zinc-900 dark:text-zinc-50 mb-3 tracking-tight">Upload Images</h1>
+            <p className="text-zinc-500 dark:text-zinc-400 max-w-md mx-auto">
+              Select up to 10 images to get started. We'll help you create stunning posts in seconds.
             </p>
           </div>
 
-          {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-800 text-sm">
-              {error}
-            </div>
-          )}
-
-          <div
+          <Card className="p-8 border-dashed border-2 border-zinc-200 dark:border-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-600 transition-colors cursor-pointer bg-zinc-50/50 dark:bg-zinc-900/50"
+            onClick={handleBrowseClick}
             onDragOver={(e) => e.preventDefault()}
             onDrop={handleDrop}
-            className="rounded-lg border-2 border-dashed border-gray-300 p-12 text-center hover:border-blue-400 hover:bg-blue-50/50 transition-all cursor-pointer"
           >
-            <div className="flex flex-col items-center gap-4">
-              <div className="h-16 w-16 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center">
+            <div className="flex flex-col items-center gap-4 py-8">
+              <div className="h-20 w-20 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-900 dark:text-zinc-50 mb-2">
                 <FiUpload className="text-3xl" />
               </div>
-              <div>
-                <p className="text-lg font-medium text-gray-900">Drag & drop your images</p>
-                <p className="text-sm text-gray-500 mt-2">or click Browse to select files</p>
-                <p className="text-xs text-gray-400 mt-1">JPG, PNG • Max 10 images • Up to 100MB each</p>
+              <div className="text-center">
+                <p className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Drag & drop your images</p>
+                <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-2">or click to browse files</p>
+                <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-4 font-medium uppercase tracking-wider">JPG, PNG • Max 10 images</p>
               </div>
-              <button
-                onClick={handleBrowseClick}
-                className="mt-4 px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+              <Button
+                variant="secondary"
+                className="mt-4"
+                onClick={(e: React.MouseEvent) => {
+                  e.stopPropagation();
+                  handleBrowseClick();
+                }}
               >
                 Browse Files
-              </button>
+              </Button>
               <input
                 ref={fileInputRef}
                 type="file"
@@ -200,73 +205,91 @@ function UploadPageContent() {
                 className="hidden"
               />
             </div>
-          </div>
+          </Card>
+
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              className="mt-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-red-600 dark:text-red-400 text-sm font-medium text-center"
+            >
+              {error}
+            </motion.div>
+          )}
 
           {uploadedImages.length > 0 && (
-            <div className="mt-8 pt-8 border-t border-gray-200">
-              <div className="mb-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="mt-12"
+            >
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
                   Selected Images ({uploadedImages.length})
                 </h2>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                  {uploadedImages.map((file, index) => (
-                    <div
-                      key={index}
-                      className="relative rounded-lg overflow-hidden bg-gray-100 aspect-square"
-                    >
-                      {imagePreviews[index] && (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={imagePreviews[index]}
-                          alt={`Preview ${index + 1}`}
-                          className="w-full h-full object-cover"
-                        />
-                      )}
-                      <div className="absolute inset-0 bg-black/20 flex flex-col items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                        <p className="text-white text-sm font-medium">{file.name}</p>
-                        <p className="text-white text-xs">{(file.size / 1024 / 1024).toFixed(2)}MB</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {progress && (
-                <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-3">
-                  <FiLoader className="animate-spin text-blue-600" />
-                  <span className="text-sm text-blue-800">{progress}</span>
-                </div>
-              )}
-
-              <div className="flex gap-4">
-                <button
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={() => {
                     imagePreviews.forEach((url) => URL.revokeObjectURL(url));
                     setUploadedImages([]);
                     setImagePreviews([]);
                     setError(null);
                   }}
-                  className="px-6 py-3 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-colors"
+                  className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
                 >
-                  Clear
-                </button>
-                <button
+                  Clear All
+                </Button>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-8">
+                {uploadedImages.map((file, index) => (
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: index * 0.05 }}
+                    className="relative rounded-xl overflow-hidden bg-zinc-100 dark:bg-zinc-800 aspect-square group shadow-sm border border-zinc-200 dark:border-zinc-700"
+                  >
+                    {imagePreviews[index] && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={imagePreviews[index]}
+                        alt={`Preview ${index + 1}`}
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                      />
+                    )}
+                    <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-2 text-center">
+                      <p className="text-white text-xs font-medium truncate w-full px-2">{file.name}</p>
+                      <p className="text-white/80 text-[10px] mt-1">{(file.size / 1024 / 1024).toFixed(2)}MB</p>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+
+              {progress && (
+                <div className="mb-8 p-4 bg-zinc-100 dark:bg-zinc-800 rounded-xl flex items-center gap-3 justify-center">
+                  <FiLoader className="animate-spin text-zinc-900 dark:text-zinc-50" />
+                  <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">{progress}</span>
+                </div>
+              )}
+
+              <div className="flex justify-end">
+                <Button
                   onClick={handleContinue}
                   disabled={loading}
-                  className="flex-1 px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:bg-gray-300 transition-colors flex items-center justify-center gap-2"
+                  variant="primary"
+                  size="lg"
+                  className="w-full sm:w-auto min-w-[200px]"
+                  isLoading={loading}
+                  rightIcon={!loading && <FiUpload />}
                 >
-                  {loading ? (
-                    <>
-                      <FiLoader className="animate-spin" /> Processing...
-                    </>
-                  ) : (
-                    `Continue to Template (${uploadedImages.length})`
-                  )}
-                </button>
+                  {loading ? 'Processing...' : `Continue (${uploadedImages.length})`}
+                </Button>
               </div>
-            </div>
+            </motion.div>
           )}
-        </div>
+        </motion.div>
       </div>
     </main>
   );

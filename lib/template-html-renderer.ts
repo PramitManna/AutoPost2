@@ -1,8 +1,4 @@
 
-// HTML-to-Image Template Renderer
-// Converts HTML templates to images using html-to-image and uploads to Cloudinary
-import * as htmlToImage from 'html-to-image';
-import { toPng, toJpeg, toBlob, toPixelData, toSvg } from 'html-to-image';
 
 import type { TemplateCustomValues } from './templates';
 
@@ -32,22 +28,22 @@ export function generateLuxuryPropertyElement(
   } = customValues;
 
   const container = document.createElement('div');
-  container.style = `
+  container.style.cssText = `
     width: 1080px;
     height: 1080px;
     position: relative;
     overflow: hidden;
-    font-family: 'Inter', Arial, sans-serif;
-    background: #ffffff;
+    font-family: 'Inter', sans-serif;
+    background: #0F172A;
     display: flex;
     flex-direction: column;
   `;
 
   container.innerHTML = `
-    <!-- HERO IMAGE -->
+    <!-- HERO IMAGE SECTION (65%) -->
     <div style="
       width: 100%;
-      height: 47%;
+      height: 65%;
       position: relative;
       overflow: hidden;
     ">
@@ -56,143 +52,112 @@ export function generateLuxuryPropertyElement(
         height: 100%;
         object-fit: cover;
       " />
-
+      
+      <!-- Gradient Overlay for depth -->
       <div style="
         position: absolute;
-        inset: 0;
-        background: linear-gradient(to bottom, rgba(0,0,0,0) 30%, rgba(0,0,0,0.6));
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 40%;
+        background: linear-gradient(to top, #0F172A, transparent);
       "></div>
 
+      <!-- Floating Badge -->
       <div style="
         position: absolute;
-        bottom: 40px;
-        left: 50%;
-        transform: translateX(-50%);
-        text-align: center;
-        width: 100%;
+        top: 40px;
+        right: 40px;
+        background: #0F172A;
+        padding: 14px 32px;
+        border: 1px solid #D4AF37;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
       ">
+        <span style="
+          color: #D4AF37;
+          font-weight: 600;
+          font-size: 14px;
+          letter-spacing: 3px;
+          text-transform: uppercase;
+        ">Just Listed</span>
+      </div>
+    </div>
+
+    <!-- CONTENT SECTION (35%) -->
+    <div style="
+      flex: 1;
+      padding: 0 60px 60px 60px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      position: relative;
+      z-index: 10;
+    ">
+      <!-- Main Title Area -->
+      <div style="margin-bottom: 30px;">
         <h1 style="
           margin: 0;
-          font-size: 60px;
-          font-weight: 700;
-          letter-spacing: 3px;
-          color: #F5D68B;
-          text-shadow: 0 3px 10px rgba(0,0,0,0.4);
+          font-size: 56px;
+          font-weight: 800;
+          line-height: 1.1;
+          color: #FFFFFF;
+          text-transform: uppercase;
+          letter-spacing: -1px;
         ">
           ${propertyTitle}
         </h1>
-
+        <div style="
+          width: 80px;
+          height: 4px;
+          background: #D4AF37; /* Gold */
+          margin: 20px 0;
+        "></div>
         <p style="
-          margin: 12px 0 0;
-          font-size: 20px;
-          letter-spacing: 2px;
-          color: #ffffffcc;
+          margin: 0;
+          font-size: 24px;
+          color: #94A3B8;
+          font-weight: 400;
+          letter-spacing: 0.5px;
         ">
           ${propertyDetails}
         </p>
       </div>
-    </div>
 
-    <!-- CONTENT AREA -->
-    <div style="
-      width: 100%;
-      height: 53%;
-      background: #0F1A2B;
-      padding: 60px;
-      box-sizing: border-box;
-      color: white;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-    ">
-
-      <!-- STATIC FEATURE BOXES -->
+      <!-- Footer / Contact Grid -->
       <div style="
-        display: flex;
-        justify-content: center;
-        gap: 40px;
-        margin-top: 10px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        border-top: 1px solid rgba(255,255,255,0.1);
+        padding-top: 30px;
+        margin-top: auto;
       ">
-        <!-- BOX A -->
-        <div style="
-          padding: 26px 34px;
-          width: 280px;
-          border-radius: 18px;
-          background: rgba(255,255,255,0.06);
-          border: 1px solid rgba(245,214,139,0.45);
-          backdrop-filter: blur(10px);
-          text-align: center;
-        ">
-          <p style="
-            color: #F5D68B;
-            font-size: 14px;
-            letter-spacing: 2px;
-            margin: 0 0 10px;
-            font-weight: 600;
-          ">FEATURED</p>
-
-          <h3 style="
-            margin: 0;
-            font-size: 32px;
-            font-weight: 700;
-            letter-spacing: 1px;
-            color: #ffffff;
-          ">PREMIUM HOME</h3>
+        <!-- Contact Info -->
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; align-items: center; gap: 10px; color: #E2E8F0;">
+            <span style="color: #D4AF37;">📞</span>
+            <span style="font-size: 18px; font-weight: 500;">${companyPhone}</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px; color: #E2E8F0;">
+            <span style="color: #D4AF37;">✉️</span>
+            <span style="font-size: 18px; font-weight: 500;">${companyEmail}</span>
+          </div>
         </div>
 
-        <!-- BOX B -->
-        <div style="
-          padding: 26px 34px;
-          width: 280px;
-          border-radius: 18px;
-          background: rgba(255,255,255,0.06);
-          border: 1px solid rgba(245,214,139,0.45);
-          backdrop-filter: blur(10px);
-          text-align: center;
-        ">
-          <p style="
-            color: #F5D68B;
-            font-size: 14px;
-            letter-spacing: 2px;
-            margin: 0 0 10px;
-            font-weight: 600;
-          ">HIGHLIGHT</p>
-
-          <h3 style="
-            margin: 0;
-            font-size: 32px;
+        <!-- Branding -->
+        <div style="text-align: right; display: flex; flex-direction: column; justify-content: center;">
+          <span style="
+            color: #FFFFFF;
             font-weight: 700;
+            font-size: 22px;
             letter-spacing: 1px;
-            color: #ffffff;
-          ">MODERN LIVING</h3>
+          ">${companyName}</span>
+          <span style="
+            color: #64748B;
+            font-size: 14px;
+            margin-top: 4px;
+          ">${companyAddress}</span>
         </div>
-      </div>
-
-      <!-- CONTACT -->
-      <div style="text-align: center; margin-top: 20px;">
-        <p style="
-          font-size: 20px;
-          letter-spacing: 2px;
-          margin: 0;
-          color: rgba(255,255,255,0.9);
-        ">
-          BOOK A TOUR • ${companyEmail}
-        </p>
-      </div>
-
-      <!-- FOOTER -->
-      <div style="
-        margin-top: 32px;
-        padding-top: 26px;
-        border-top: 1px solid rgba(255,255,255,0.2);
-        display: flex;
-        justify-content: space-between;
-        font-size: 18px;
-        opacity: 0.85;
-      ">
-        <p style="margin: 0;">🏢 ${companyName}</p>
-        <p style="margin: 0;">📞 ${companyPhone}</p>
-        <p style="margin: 0;">📍 ${companyAddress}</p>
       </div>
     </div>
   `;
@@ -229,12 +194,12 @@ export async function renderTemplateToImage(
     // Wait for all images to load with better error handling
     const images = element.querySelectorAll('img');
     console.log('Found images in template:', images.length);
-    
+
     for (const img of Array.from(images)) {
       console.log('Image src:', img.src);
       console.log('Image complete:', img.complete);
       console.log('Image naturalWidth:', img.naturalWidth);
-      
+
       if (!img.complete || img.naturalWidth === 0) {
         console.log('Waiting for image to load...');
         await new Promise((resolve) => {
@@ -242,19 +207,19 @@ export async function renderTemplateToImage(
             console.warn('Image load timeout for:', img.src);
             resolve(img); // Continue even if timeout
           }, 10000);
-          
+
           img.onload = () => {
             clearTimeout(timeout);
             console.log('Image loaded successfully:', img.src);
             resolve(img);
           };
-          
+
           img.onerror = (e) => {
             clearTimeout(timeout);
             console.error('Image failed to load:', img.src, e);
             resolve(img); // Continue even if error
           };
-          
+
           // Try to reload if not loaded
           if (!img.complete) {
             const originalSrc = img.src;
@@ -270,10 +235,10 @@ export async function renderTemplateToImage(
     // Use html2canvas to render element
     const win = window as unknown as Record<string, unknown>;
     const html2canvas = win.html2canvas as (element: HTMLElement, options: Record<string, unknown>) => Promise<HTMLCanvasElement>;
-    
+
     console.log('Starting html2canvas rendering...');
     console.log('Element dimensions:', element.offsetWidth, 'x', element.offsetHeight);
-    
+
     const canvas = await html2canvas(element, {
       scale: 1, // Force scale 1 for exact size
       useCORS: true,
@@ -295,7 +260,7 @@ export async function renderTemplateToImage(
         }
       }
     });
-    
+
     console.log('html2canvas completed, canvas size:', canvas.width, 'x', canvas.height);
 
     const dataUrl = canvas.toDataURL('image/png', 1.0);

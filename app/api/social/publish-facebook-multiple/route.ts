@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
 
     // Step 2: Upload all images first (unpublished)
     const mediaIds = [];
-    
+
     for (let i = 0; i < imageUrls.length; i++) {
       const imageUrl = imageUrls[i];
       console.log(`📷 Uploading image ${i + 1}/${imageUrls.length}:`, imageUrl);
@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
       mediaIds.push({
         media_fbid: uploadRes.data.id
       });
-      
+
       console.log(`✅ Image ${i + 1} uploaded with ID:`, uploadRes.data.id);
     }
 
@@ -92,9 +92,13 @@ export async function POST(req: NextRequest) {
 
     console.log("✅ Multi-photo post created:", multiPostRes.data);
 
+    // Construct the post URL
+    const postUrl = `https://www.facebook.com/${multiPostRes.data.id}`;
+
     return NextResponse.json({
       success: true,
       postId: multiPostRes.data.id,
+      postUrl: postUrl,
       message: `Posted ${imageUrls.length} images to Facebook successfully!`,
       mediaCount: imageUrls.length,
     });
@@ -102,13 +106,13 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     const err = error as { response?: { status: number; data: unknown }; message: string };
     console.error("❌ Facebook multiple images publishing error:", err);
-    
+
     if (err.response) {
       console.error("Error response:", err.response.data);
       return NextResponse.json(
-        { 
-          error: "Facebook API error", 
-          details: err.response.data 
+        {
+          error: "Facebook API error",
+          details: err.response.data
         },
         { status: err.response.status || 500 }
       );

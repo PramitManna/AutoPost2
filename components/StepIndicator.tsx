@@ -19,52 +19,51 @@ export default function StepIndicator({ currentStep }: StepIndicatorProps) {
   const currentIndex = stepOrder.indexOf(currentStep);
 
   return (
-    <div className="w-full bg-white border-b border-gray-200">
-      <div className="max-w-2xl mx-auto px-4 py-6 sm:px-6">
-        <div className="flex items-center justify-between">
-          {steps.map((step, index) => (
-            <div key={step.id} className="flex items-center flex-1">
-              <div className="flex flex-col items-center flex-1">
+    <div className="w-full bg-white/80 backdrop-blur-md border-b border-zinc-200 dark:bg-zinc-950/80 dark:border-zinc-800 sticky top-0 z-50">
+      <div className="max-w-3xl mx-auto px-4 py-4">
+        <div className="flex items-center justify-between relative">
+          {/* Progress Bar Background */}
+          <div className="absolute top-1/2 left-0 w-full h-0.5 bg-zinc-100 dark:bg-zinc-800 -z-10" />
+
+          {/* Active Progress Bar */}
+          <div
+            className="absolute top-1/2 left-0 h-0.5 bg-zinc-900 dark:bg-zinc-50 -z-10 transition-all duration-500 ease-in-out"
+            style={{ width: `${(currentIndex / (steps.length - 1)) * 100}%` }}
+          />
+
+          {steps.map((step, index) => {
+            const isActive = index === currentIndex;
+            const isCompleted = index < currentIndex;
+
+            return (
+              <div key={step.id} className="flex flex-col items-center relative">
                 <div
-                  className={`flex items-center justify-center w-10 h-10 rounded-full border-2 transition-all ${
-                    index < currentIndex
-                      ? 'bg-green-500 border-green-500 text-white'
-                      : index === currentIndex
-                      ? 'bg-blue-500 border-blue-500 text-white'
-                      : 'bg-gray-100 border-gray-300 text-gray-500'
-                  }`}
+                  className={`flex items-center justify-center w-8 h-8 rounded-full border-2 transition-all duration-300 ${isActive
+                      ? 'bg-zinc-900 border-zinc-900 text-white scale-110 dark:bg-zinc-50 dark:border-zinc-50 dark:text-zinc-900 shadow-lg'
+                      : isCompleted
+                        ? 'bg-zinc-900 border-zinc-900 text-white dark:bg-zinc-50 dark:border-zinc-50 dark:text-zinc-900'
+                        : 'bg-white border-zinc-300 text-zinc-400 dark:bg-zinc-950 dark:border-zinc-700 dark:text-zinc-600'
+                    }`}
                 >
-                  {index < currentIndex ? (
-                    <FiCheckCircle className="w-6 h-6" />
+                  {isCompleted ? (
+                    <FiCheckCircle className="w-5 h-5" />
                   ) : (
-                    <span className="font-semibold">{index + 1}</span>
+                    <span className="text-xs font-bold">{index + 1}</span>
                   )}
                 </div>
-                <div className="mt-2 text-center">
+                <div className="mt-2 absolute top-8 w-20 text-center hidden sm:block">
                   <p
-                    className={`text-sm font-medium ${
-                      index === currentIndex
-                        ? 'text-blue-600'
-                        : 'text-gray-600'
-                    }`}
+                    className={`text-xs font-medium transition-colors duration-300 ${isActive
+                        ? 'text-zinc-900 dark:text-zinc-50'
+                        : 'text-zinc-500 dark:text-zinc-500'
+                      }`}
                   >
                     {step.label}
                   </p>
-                  <p className="text-xs text-gray-500">{step.description}</p>
                 </div>
               </div>
-
-              {index < steps.length - 1 && (
-                <div
-                  className={`h-1 mx-2 flex-1 ${
-                    index < currentIndex
-                      ? 'bg-green-500'
-                      : 'bg-gray-300'
-                  }`}
-                />
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>

@@ -14,6 +14,7 @@ export interface WorkflowData {
   caption: string;
   generatedCaption: string;
   // Listing Information
+  address: string;
   propertyType: string;
   bedrooms: string;
   bathrooms: string;
@@ -22,6 +23,8 @@ export interface WorkflowData {
   view: string;
   city: string;
   highlights: string;
+  agencyName: string;
+  brokerageName: string;
   // Session metadata
   timestamp: number;
   sessionId: string;
@@ -51,6 +54,7 @@ export function createEmptyWorkflow(sessionId: string): WorkflowData {
     templateCustomValues: {},
     caption: '',
     generatedCaption: '',
+    address: '',
     propertyType: '',
     bedrooms: '',
     bathrooms: '',
@@ -59,6 +63,8 @@ export function createEmptyWorkflow(sessionId: string): WorkflowData {
     view: '',
     city: '',
     highlights: '',
+    agencyName: '',
+    brokerageName: '',
     timestamp: Date.now(),
     sessionId,
   };
@@ -72,7 +78,7 @@ export function saveWorkflowSession(data: WorkflowData): void {
     console.warn('Cannot save workflow session on server');
     return;
   }
-  
+
   try {
     sessionStorage.setItem(WORKFLOW_STORAGE_KEY, JSON.stringify(data));
   } catch (error) {
@@ -129,8 +135,13 @@ export function clearWorkflowSession(): void {
 export function updateWorkflowSession(
   updates: Partial<WorkflowData>
 ): WorkflowData | null {
-  const current = getWorkflowSession();
-  if (!current) return null;
+  let current = getWorkflowSession();
+
+  // If no session exists, create a new one
+  if (!current) {
+    const sessionId = generateSessionId();
+    current = createEmptyWorkflow(sessionId);
+  }
 
   const updated: WorkflowData = {
     ...current,

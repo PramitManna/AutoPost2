@@ -58,22 +58,26 @@ export async function POST(req: NextRequest) {
 
     console.log("✅ Facebook upload response:", uploadRes.data);
 
+    // Construct the post URL
+    const postUrl = `https://www.facebook.com/${uploadRes.data.post_id}`;
+
     return NextResponse.json({
       success: true,
       postId: uploadRes.data.id,
+      postUrl: postUrl,
       message: "Posted to Facebook successfully!",
     });
 
   } catch (error) {
     const err = error as { response?: { status: number; data: unknown }; message: string };
     console.error("❌ Facebook publishing error:", err);
-    
+
     if (err.response) {
       console.error("Error response:", err.response.data);
       return NextResponse.json(
-        { 
-          error: "Facebook API error", 
-          details: err.response.data 
+        {
+          error: "Facebook API error",
+          details: err.response.data
         },
         { status: err.response.status || 500 }
       );

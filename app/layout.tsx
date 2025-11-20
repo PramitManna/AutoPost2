@@ -17,17 +17,28 @@ export const metadata: Metadata = {
   description: "Automate your social media posting with ease.",
 };
 
+import { ThemeProvider } from "@/components/ThemeProvider";
+import { ThemeToggle } from "@/components/ThemeToggle";
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,var(--tw-gradient-stops))] from-gray-50 via-white to-white">
-          {children}
-        </div>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,var(--tw-gradient-stops))] from-gray-50 via-white to-white dark:from-zinc-950 dark:via-zinc-950 dark:to-zinc-900 transition-colors duration-300">
+            {children}
+            <ThemeToggle />
+          </div>
+        </ThemeProvider>
       </body>
     </html>
   );
