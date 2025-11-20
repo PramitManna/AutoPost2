@@ -258,7 +258,6 @@ NOW: Create the final property caption following the EXACT format above. Combine
       return singleResponse.text();
     }
   } catch (error) {
-    console.error('Error in performAIAnalysis:', error);
     throw error;
   }
 }
@@ -348,8 +347,8 @@ export async function POST(request: NextRequest) {
       if (key === 'listingInfo' && typeof value === 'string') {
         try {
           listingInfo = JSON.parse(value);
-        } catch (e) {
-          console.warn('Failed to parse listing info:', e);
+        } catch {
+          listingInfo = {};
         }
       } else if (key.startsWith('image') && value instanceof File) {
         if (imageBuffers.length >= MAX_IMAGES) {
@@ -400,7 +399,6 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Image analysis error:', error);
     return NextResponse.json(
       {
         error: 'Image analysis failed',
