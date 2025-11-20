@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { GoogleGenAI } from '@google/genai';
 import { v2 as cloudinary } from 'cloudinary';
 import { checkRateLimit } from '@/lib/redis';
 
@@ -65,51 +64,107 @@ async function uploadToCloudinary(base64Image: string): Promise<{ url: string; p
 
 async function emptyRoom(imageUrl: string): Promise<{ url: string; publicId: string }> {
     try {
-        if (!process.env.GEMINI_API_KEY) {
-            throw new Error('GEMINI_API_KEY environment variable is not set');
+        // Get API key from environment
+        const apiKey = process.env.GOOGLE_GENAI_API_KEY;
+        
+        console.log('🔍 Debug - Environment check:', {
+            hasKey: !!apiKey,
+            keyLength: apiKey?.length,
+            keyStart: apiKey?.substring(0, 15) + '...',
+        });
+        
+        if (!apiKey) {
+            throw new Error('Missing API Key: GOOGLE_GENAI_API_KEY must be set');
         }
 
-        const ai = new GoogleGenAI({
-            apiKey: process.env.GEMINI_API_KEY,
-        });
+        console.log('🔑 Using API key for Gemini API');
 
         // Download the image
         const { data: base64Image, mimeType } = await downloadImageAsBase64(imageUrl);
 
-        // Prepare the prompt for room emptying
-        const prompt = [
-            {
-                text: "Remove all furniture, decorations, and objects from this room. Show only the empty space with walls, floors, ceiling, windows, and architectural features. Maintain the original lighting, perspective, and room dimensions. Keep the room's structure, colors, and architectural details exactly as they are."
-            },
-            {
-                inlineData: {
-                    mimeType,
-                    data: base64Image,
-                },
-            },
-        ];
+        console.log('📥 Image downloaded successfully');
 
-        // Generate the empty room image using gemini-2.5-flash-image
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash-image',
-            contents: prompt,
+        // Prepare the request body for REST API
+        const requestBody = {
+            contents: [
+                {
+                    parts: [
+                        {
+                            text: "Remove all furniture, decorations, and objects from this room. Show only the empty space with walls, floors, ceiling, windows, and architectural features. Maintain the original lighting, perspective, and room dimensions. Keep the room's structure, colors, and architectural details exactly as they are."
+                        },
+                        {
+                            inline_data: {
+                                mime_type: mimeType,
+                                data: base64Image
+                            }
+                        }
+                    ]
+                }
+            ]
+        };
+
+        console.log('🎨 Generating empty room image with Gemini API...');
+
+        // Use REST API directly with proper authentication
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${apiKey}`;
+        
+        // Debug: log the URL structure (without revealing full key)
+        console.log('📡 API URL structure:', {
+            baseUrl: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent',
+            hasKeyParam: apiUrl.includes('?key='),
+            keyLength: apiKey.length,
+            fullUrlLength: apiUrl.length
         });
+        
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(requestBody)
+        });
+
+        console.log('📨 Response status:', response.status, response.statusText);
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('❌ Gemini API error:', errorText);
+            
+            // Provide helpful error message for API key issues
+            if (errorText.includes('API Key not found') || errorText.includes('API_KEY_INVALID')) {
+                throw new Error(
+                    'Invalid or expired API key. Please:\n' +
+                    '1. Go to https://aistudio.google.com/app/apikey\n' +
+                    '2. Create a new API key for Gemini\n' +
+                    '3. Update GOOGLE_GENAI_API_KEY in your .env.local file\n' +
+                    '4. Restart your development server\n\n' +
+                    `API Error: ${errorText}`
+                );
+            }
+            
+            throw new Error(`Gemini API error: ${errorText}`);
+        }
+
+        const responseData = await response.json();
+
+        console.log('✅ Gemini API response received');
 
         // Extract the generated image from the response
         let generatedImageBase64: string | null = null;
 
-        // Type assertion to match the actual SDK response structure
-        const responseData = response as any;
-        if (responseData && responseData.parts) {
-            for (const part of responseData.parts) {
-                if (part.inlineData) {
-                    generatedImageBase64 = part.inlineData.data;
+        // Access the response structure from REST API
+        if (responseData.candidates?.[0]?.content?.parts) {
+            for (const part of responseData.candidates[0].content.parts) {
+                if (part.inlineData?.data || part.inline_data?.data) {
+                    generatedImageBase64 = part.inlineData?.data || part.inline_data?.data;
+                    console.log('🖼️ Image data extracted from response');
                     break;
                 }
             }
         }
 
         if (!generatedImageBase64) {
+            console.error('❌ No image data found in response:', JSON.stringify(responseData, null, 2));
             throw new Error('No image generated in the response');
         }
 
@@ -119,6 +174,22 @@ async function emptyRoom(imageUrl: string): Promise<{ url: string; publicId: str
         return uploadResult;
     } catch (error) {
         console.error('Error in emptyRoom:', error);
+
+        // Handle quota/billing errors specifically
+        if (error && typeof error === 'object' && ('status' in error || 'message' in error)) {
+            const err = error as { status?: number; message?: string };
+            if (err.status === 429 || err.message?.includes('quota') || err.message?.includes('RESOURCE_EXHAUSTED')) {
+                throw new Error(
+                    'Gemini API quota exceeded. This usually means:\n' +
+                    '1. You are using a FREE TIER API key instead of a PAID one\n' +
+                    '2. Billing is not enabled in your Google Cloud project\n' +
+                    '3. You need to check your API key at: https://ai.google.dev/gemini-api/docs/api-key\n' +
+                    '4. Verify billing at: https://console.cloud.google.com/billing\n\n' +
+                    `Original error: ${err.message}`
+                );
+            }
+        }
+
         throw error;
     }
 }
@@ -155,9 +226,9 @@ export async function POST(request: NextRequest) {
         }
 
         // Validate environment variables
-        if (!process.env.GEMINI_API_KEY) {
+        if (!process.env.GOOGLE_GENAI_API_KEY) {
             return NextResponse.json(
-                { success: false, error: 'Service configuration error: Missing GEMINI_API_KEY' },
+                { success: false, error: 'Service configuration error: Missing GOOGLE_GENAI_API_KEY' },
                 { status: 500 }
             );
         }
