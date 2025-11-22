@@ -19,13 +19,14 @@ export default function ListingPage() {
 
   // Form state
   const [address, setAddress] = useState('');
+  const [zipCode, setZipCode] = useState('');
   const [propertyType, setPropertyType] = useState('');
+  const [propertyTypeOther, setPropertyTypeOther] = useState('');
   const [bedrooms, setBedrooms] = useState('');
   const [bathrooms, setBathrooms] = useState('');
   const [propertySize, setPropertySize] = useState('');
   const [parking, setParking] = useState('');
   const [view, setView] = useState('');
-  const [city, setCity] = useState('');
   const [highlights, setHighlights] = useState('');
   const [agencyName, setAgencyName] = useState('');
   const [brokerageName, setBrokerageName] = useState('');
@@ -43,13 +44,14 @@ export default function ListingPage() {
       setWorkflow(session);
       // Load existing values if they exist
       setAddress(session.address || '');
+      setZipCode(session.zipCode || '');
       setPropertyType(session.propertyType || '');
+      setPropertyTypeOther(session.propertyTypeOther || '');
       setBedrooms(session.bedrooms || '');
       setBathrooms(session.bathrooms || '');
       setPropertySize(session.propertySize || '');
       setParking(session.parking || '');
       setView(session.view || '');
-      setCity(session.city || '');
       setHighlights(session.highlights || '');
       setAgencyName(session.agencyName || '');
       setBrokerageName(session.brokerageName || '');
@@ -57,49 +59,20 @@ export default function ListingPage() {
   }, [router]);
 
   const handleContinue = async () => {
-    if (!propertyType) {
-      setError('Please select a property type');
-      return;
-    }
-
-    if (!bedrooms) {
-      setError('Please select number of bedrooms');
-      return;
-    }
-
-    if (!bathrooms) {
-      setError('Please select number of bathrooms');
-      return;
-    }
-
-    if (!propertySize) {
-      setError('Please select property size');
-      return;
-    }
-
-    if (!parking) {
-      setError('Please select parking type');
-      return;
-    }
-
-    if (!city) {
-      setError('Please enter city and neighborhood');
-      return;
-    }
-
     setLoading(true);
     setError(null);
 
     try {
       updateWorkflowSession({
         address,
+        zipCode,
         propertyType,
+        propertyTypeOther,
         bedrooms,
         bathrooms,
         propertySize,
         parking,
         view,
-        city,
         highlights,
         agencyName,
         brokerageName,
@@ -136,7 +109,7 @@ export default function ListingPage() {
           <div className="mb-8 text-center">
             <h1 className="text-3xl font-bold text-zinc-900 dark:text-zinc-50 mb-3 tracking-tight">Listing Information</h1>
             <p className="text-zinc-500 dark:text-zinc-400 max-w-md mx-auto">
-              Tell us about the property to help generate better templates and captions.
+              Share details about the property to help generate better templates and captions. All fields are optional.
             </p>
           </div>
 
@@ -164,10 +137,22 @@ export default function ListingPage() {
                 />
               </div>
 
+              {/* Zip Code */}
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                  Zip Code (Optional)
+                </label>
+                <Input
+                  value={zipCode}
+                  onChange={(e) => setZipCode(e.target.value)}
+                  placeholder="e.g., V3W 0A1"
+                />
+              </div>
+
               {/* Property Type */}
               <div>
                 <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                  Property Type *
+                  Property Type
                 </label>
                 <div className="relative">
                   <select
@@ -181,18 +166,36 @@ export default function ListingPage() {
                     <option value="Detached">Detached</option>
                     <option value="Semi-Detached">Semi-Detached</option>
                     <option value="Commercial">Commercial</option>
+                    <option value="Office Space">Office Space</option>
+                    <option value="Other">Other</option>
                   </select>
                   <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500">
                     <FiChevronDown />
                   </div>
                 </div>
+
+                {propertyType === 'Other' && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="mt-3"
+                  >
+                    <Input
+                      value={propertyTypeOther}
+                      onChange={(e) => setPropertyTypeOther(e.target.value)}
+                      placeholder="Please specify the property type"
+                    />
+                  </motion.div>
+                )}
               </div>
 
               {/* Bedrooms and Bathrooms Row */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                    Bedrooms *
+                    Bedrooms
                   </label>
                   <div className="relative">
                     <select
@@ -215,7 +218,7 @@ export default function ListingPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                    Bathrooms *
+                    Bathrooms
                   </label>
                   <div className="relative">
                     <select
@@ -240,7 +243,7 @@ export default function ListingPage() {
               {/* Property Size */}
               <div>
                 <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                  Property Size *
+                  Property Size
                 </label>
                 <div className="relative">
                   <select
@@ -250,9 +253,13 @@ export default function ListingPage() {
                   >
                     <option value="">Select property size</option>
                     <option value="<500 sq ft">&lt;500 sq ft</option>
-                    <option value="500-800 sq ft">500–800 sq ft</option>
-                    <option value="800-1000 sq ft">800–1000 sq ft</option>
-                    <option value=">1000 sq ft">&gt;1000 sq ft</option>
+                    <option value="500-600 sq ft">500–600 sq ft</option>
+                    <option value="600-700 sq ft">600–700 sq ft</option>
+                    <option value="700-800 sq ft">700–800 sq ft</option>
+                    <option value="800-900 sq ft">800–900 sq ft</option>
+                    <option value="900-1000 sq ft">900–1000 sq ft</option>
+                    <option value="1000-1500 sq ft">1000–1500 sq ft</option>
+                    <option value="1500-2000 sq ft">1500–2000 sq ft</option>
                   </select>
                   <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500">
                     <FiChevronDown />
@@ -263,7 +270,7 @@ export default function ListingPage() {
               {/* Parking */}
               <div>
                 <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                  Parking *
+                  Parking
                 </label>
                 <div className="relative">
                   <select
@@ -305,14 +312,6 @@ export default function ListingPage() {
                   </div>
                 </div>
               </div>
-
-              {/* City and Neighborhood */}
-              <Input
-                label="City & Neighborhood *"
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-                placeholder="Enter city and neighborhood"
-              />
 
               {/* Optional Highlights */}
               <div>

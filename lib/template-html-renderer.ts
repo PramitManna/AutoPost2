@@ -1,5 +1,3 @@
-
-
 import type { TemplateCustomValues } from './templates';
 
 export type { TemplateCustomValues };

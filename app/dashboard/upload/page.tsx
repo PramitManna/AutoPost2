@@ -168,7 +168,7 @@ function UploadPageContent() {
           <div className="mb-8 text-center">
             <h1 className="text-3xl font-bold text-zinc-900 dark:text-zinc-50 mb-3 tracking-tight">Upload Images</h1>
             <p className="text-zinc-500 dark:text-zinc-400 max-w-md mx-auto">
-              Select up to 10 images to get started. We'll help you create stunning posts in seconds.
+              Select up to 10 images to get started. We&apos;ll help you create stunning posts in seconds.
             </p>
           </div>
 
@@ -182,8 +182,8 @@ function UploadPageContent() {
                 <FiUpload className="text-3xl" />
               </div>
               <div className="text-center">
-                <p className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Drag & drop your images</p>
-                <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-2">or click to browse files</p>
+                <p className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Upload or capture photos</p>
+                <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-2">tap to select from device or take photos directly</p>
                 <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-4 font-medium uppercase tracking-wider">JPG, PNG • Max 10 images</p>
               </div>
               <Button

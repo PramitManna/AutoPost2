@@ -15,13 +15,14 @@ export interface WorkflowData {
   generatedCaption: string;
   // Listing Information
   address: string;
+  zipCode: string;
   propertyType: string;
+  propertyTypeOther: string;
   bedrooms: string;
   bathrooms: string;
   propertySize: string;
   parking: string;
   view: string;
-  city: string;
   highlights: string;
   agencyName: string;
   brokerageName: string;
@@ -55,13 +56,14 @@ export function createEmptyWorkflow(sessionId: string): WorkflowData {
     caption: '',
     generatedCaption: '',
     address: '',
+    zipCode: '',
     propertyType: '',
+    propertyTypeOther: '',
     bedrooms: '',
     bathrooms: '',
     propertySize: '',
     parking: '',
     view: '',
-    city: '',
     highlights: '',
     agencyName: '',
     brokerageName: '',
@@ -179,9 +181,6 @@ export function validateWorkflowStage(
     case 'template':
       if (!workflow.imageUrls || workflow.imageUrls.length === 0) {
         errors.push('No images in session');
-      }
-      if (!workflow.propertyType || workflow.propertyType.trim().length === 0) {
-        errors.push('Property type is required');
       }
       break;
 

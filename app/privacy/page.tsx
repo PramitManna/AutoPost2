@@ -9,7 +9,7 @@ export default function PrivacyPolicy() {
         functionality through Meta’s API and is never stored permanently.
       </p>
       <p className="mt-4">
-        For any concerns, contact us at: <b>support@realtygenie.co</b>
+        For any concerns, contact us at: <b>info@realtygenie.co</b>
       </p>
     </main>
   );
