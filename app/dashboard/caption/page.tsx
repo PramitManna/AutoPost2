@@ -71,7 +71,7 @@ export default function CaptionPage() {
         propertySize: workflow.propertySize,
         parking: workflow.parking,
         view: workflow.view,
-        city: workflow.city,
+        zipCode: workflow.zipCode,
         highlights: workflow.highlights,
         agencyName: workflow.agencyName,
         brokerageName: workflow.brokerageName,
