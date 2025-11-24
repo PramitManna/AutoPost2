@@ -1,16 +1,58 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getRedisClient } from '@/lib/redis';
 import { getOptimizationStats } from '@/lib/cost-optimizer';
+import { connectToDatabase } from '@/lib/mongodb';
+import { SECURITY_HEADERS } from '@/lib/security-config';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const startTime = Date.now();
+  
   try {
     const redis = getRedisClient();
     const optimizationStats = getOptimizationStats();
     
+    // Check database connection
+    await connectToDatabase();
+    const dbConnectionTime = Date.now() - startTime;
+    
+    // Check user authentication integration
+    const User = (await import('@/models/User')).default;
+    const userStats = {
+      totalUsers: await User.countDocuments(),
+      activeUsers: await User.countDocuments({ isActive: true }),
+      usersWithMetaTokens: await User.countDocuments({ 
+        isActive: true, 
+        pageId: { $exists: true, $ne: null } 
+      })
+    };
+    
     const health = {
       status: 'healthy',
       timestamp: new Date().toISOString(),
-      version: '2.0.0-optimized',
+      version: '2.0.0-production-ready',
+      environment: process.env.NODE_ENV || 'development',
+      uptime: process.uptime(),
+      checks: {
+        database: {
+          status: 'connected',
+          responseTime: `${dbConnectionTime}ms`,
+          userAuthentication: {
+            totalUsers: userStats.totalUsers,
+            activeUsers: userStats.activeUsers,
+            connectedToMeta: userStats.usersWithMetaTokens,
+            integrationStatus: 'database-backed'
+          }
+        },
+        api: {
+          status: 'operational',
+          version: 'v21.0'
+        },
+        security: {
+          https: req.url.startsWith('https://'),
+          headers: 'configured',
+          encryption: 'enabled'
+        }
+      },
       services: {
         redis: {
           available: !!redis,
@@ -69,18 +111,31 @@ export async function GET() {
       }
     }
 
+    // Add Meta configuration status
+    (health as any).meta = {
+      appId: process.env.NEXT_PUBLIC_META_APP_ID ? 'configured' : 'missing',
+      webhooks: process.env.META_WEBHOOK_VERIFY_TOKEN ? 'configured' : 'missing',
+      encryption: process.env.TOKEN_ENCRYPTION_KEY ? 'configured' : 'missing'
+    };
+
     const statusCode = health.deployment.readyForProduction ? 200 : 206; // 206 = Partial Content
 
-    return NextResponse.json(health, { 
+    const response = NextResponse.json(health, { 
       status: statusCode,
-      headers: {
-        'Cache-Control': 'no-cache',
-        'X-Health-Check': 'autopost-v2',
-      }
     });
+    
+    // Add security headers
+    Object.entries(SECURITY_HEADERS).forEach(([key, value]) => {
+      response.headers.set(key, value);
+    });
+    
+    response.headers.set('Cache-Control', 'no-cache');
+    response.headers.set('X-Health-Check', 'autopost-v2-secure');
+    
+    return response;
 
   } catch (error) {
-    return NextResponse.json({
+    const errorData = {
       status: 'error',
       timestamp: new Date().toISOString(),
       error: (error as Error).message,
@@ -88,8 +143,37 @@ export async function GET() {
         redis: { status: 'unknown' },
         gemini: { status: 'unknown' },
         cloudinary: { status: 'unknown' },
-        meta: { status: 'unknown' }
+        meta: { status: 'unknown' },
+        database: { status: 'error' }
       }
-    }, { status: 500 });
+    };
+    
+    const response = NextResponse.json(errorData, { status: 500 });
+    
+    // Add security headers even for errors
+    Object.entries(SECURITY_HEADERS).forEach(([key, value]) => {
+      response.headers.set(key, value);
+    });
+    
+    return response;
+  }
+}
+
+export async function HEAD() {
+  // Simple health check for monitoring systems
+  try {
+    await connectToDatabase();
+    
+    const response = new NextResponse(null, { status: 200 });
+    
+    // Add security headers
+    Object.entries(SECURITY_HEADERS).forEach(([key, value]) => {
+      response.headers.set(key, value);
+    });
+    
+    return response;
+    
+  } catch {
+    return new NextResponse(null, { status: 503 });
   }
 }

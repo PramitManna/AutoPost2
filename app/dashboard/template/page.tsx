@@ -9,6 +9,8 @@ import StepIndicator from '@/components/StepIndicator';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { UserNavbar } from '@/components/UserNavbar';
+import { cancelUploadWorkflow } from '@/lib/cancel-workflow';
 import {
   getWorkflowSession,
   updateWorkflowSession,
@@ -59,7 +61,7 @@ export default function TemplatePage() {
     if (session) {
       setWorkflow(session);
 
-      // Initialize image order
+
       setImageOrder(session.imageUrls.map((_, idx) => idx));
 
       if (session.templateCustomValues) {
@@ -131,10 +133,7 @@ export default function TemplatePage() {
         customValues
       );
 
-      // Calculate scale to fit 600px container
-      const scale = 600 / 1080; // Scale to fit width exactly
-
-      // Apply transform to scale down and position correctly
+      const scale = 600 / 1080;
       element.style.transform = `scale(${scale})`;
       element.style.transformOrigin = 'top left';
       element.style.display = 'block';
@@ -170,13 +169,13 @@ export default function TemplatePage() {
         companyAddress,
       };
 
-      // Generate template for ONLY the selected image
+
       const element = generateLuxuryPropertyElement(
         workflow.imageUrls[selectedImageIndex],
         customValues
       );
 
-      // Position element properly for rendering
+
       element.style.position = 'fixed';
       element.style.top = '-9999px';
       element.style.left = '-9999px';
@@ -202,16 +201,15 @@ export default function TemplatePage() {
         throw new Error('Failed to get URL for templated image');
       }
 
-      // Reorder images according to imageOrder array
-      // The templated image will always be first
+
       const reorderedUrls: string[] = [];
       const reorderedPublicIds: string[] = [];
 
-      // Add templated image first
+
       reorderedUrls.push(cloud.url);
       reorderedPublicIds.push(cloud.publicId);
 
-      // Add other images in the specified order (excluding the selected one)
+
       imageOrder.forEach((originalIndex) => {
         if (originalIndex !== selectedImageIndex) {
           reorderedUrls.push(workflow.imageUrls[originalIndex]);
@@ -220,7 +218,7 @@ export default function TemplatePage() {
       });
 
 
-      // Preserve original images for AI analysis
+
       updateWorkflowSession({
         originalImageUrls: workflow.imageUrls, // Store current images as original
         originalImagePublicIds: workflow.imagePublicIds,
@@ -238,6 +236,18 @@ export default function TemplatePage() {
     }
   };
 
+  const handleCancelUpload = async () => {
+    if (confirm('Are you sure you want to cancel this upload? All progress will be lost and uploaded images will be deleted.')) {
+      try {
+        await cancelUploadWorkflow();
+        router.push('/dashboard');
+      } catch (error) {
+        console.error('Error canceling upload:', error);
+        router.push('/dashboard');
+      }
+    }
+  };
+
   if (!workflow) {
     return (
       <main className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-zinc-950">
@@ -250,10 +260,14 @@ export default function TemplatePage() {
   // UI
   // ========================================================
   return (
-    <main className="min-h-screen bg-zinc-50 dark:bg-zinc-950 pb-20">
-      <StepIndicator currentStep="template" />
-
-      <div className="max-w-5xl mx-auto px-4 py-12 sm:px-6">
+    <>
+      <UserNavbar 
+        onCancelUpload={handleCancelUpload}
+        showCancelUpload={true}
+      />
+      <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 pb-20 mt-[60px]">
+        <StepIndicator currentStep="template" />
+        <main className="max-w-5xl mx-auto px-4 py-8 sm:px-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -525,7 +539,8 @@ export default function TemplatePage() {
             </Button>
           </div>
         </motion.div>
+        </main>
       </div>
-    </main>
+    </>
   );
 }

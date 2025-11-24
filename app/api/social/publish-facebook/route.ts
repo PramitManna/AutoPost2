@@ -1,30 +1,45 @@
 import { NextRequest, NextResponse } from "next/server";
 import axios from "axios";
-import { generateUserId, getValidToken } from "@/lib/token-manager";
 
 export async function POST(req: NextRequest) {
   try {
-    const { imageUrl, caption } = await req.json();
+    const { imageUrl, caption, userEmail } = await req.json();
 
-    if (!imageUrl || !caption) {
+    if (!imageUrl || !caption || !userEmail) {
       return NextResponse.json(
-        { error: "Missing required fields: imageUrl, caption" },
+        { error: "Missing required fields: imageUrl, caption, userEmail" },
         { status: 400 }
       );
     }
 
-    // Get userId and fetch stored token from database
-    const userId = generateUserId(req);
-    const user = await getValidToken(userId);
 
-    if (!user) {
+
+    // Get user's access token by email
+    const tokenResponse = await fetch(`${req.nextUrl.origin}/api/user/token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: userEmail })
+    });
+
+    if (!tokenResponse.ok) {
       return NextResponse.json(
-        { error: "No valid token found. Please connect your Meta account first." },
+        { error: "No valid Meta token found. Please connect your Meta account first." },
         { status: 401 }
       );
     }
 
-    const { accessToken, pageId } = user;
+    const { accessToken, user } = await tokenResponse.json();
+    
+    if (!accessToken || !user.pageId) {
+      return NextResponse.json(
+        { error: "Invalid token or no Facebook page connected" },
+        { status: 401 }
+      );
+    }
+
+    const { pageId } = user;
+    
+
 
 
     // Step 1: Get Page Access Token (the user token might not have page posting permissions)
@@ -63,7 +78,7 @@ export async function POST(req: NextRequest) {
 
   } catch (error) {
     const err = error as { response?: { status: number; data: unknown }; message: string };
-    console.error(" Facebook publishing error:", err);
+    console.error("Facebook publishing error:", err);
 
     if (err.response) {
       console.error("Error response:", err.response.data);

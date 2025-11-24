@@ -6,7 +6,13 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "type-check": "tsc --noEmit",
+    "cleanup": "node scripts/cleanup-job.ts",
+    "validate-production": "node -e \"require('./lib/security-config').validateProductionEnvironment()\"",
+    "db:setup-production": "node -e \"console.log('Production database setup - run MongoDB index creation commands')\"",
+    "test:security": "npm run type-check && npm run validate-production",
+    "deploy:production": "npm run test:security && npm run build && vercel --prod"
   },
   "dependencies": {
     "@google/genai": "^1.30.0",

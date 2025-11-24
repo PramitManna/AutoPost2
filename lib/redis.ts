@@ -22,7 +22,7 @@ export function getRedisClient(): UpstashRedis | RedisClientType | null {
       // Connect to Railway Redis
       (redis as RedisClientType).connect().then(() => {
       }).catch(error => {
-        console.error('❌ Railway Redis connection failed:', error);
+        console.error('Railway Redis connection failed:', error);
         redis = null;
       });
       
@@ -41,7 +41,7 @@ export function getRedisClient(): UpstashRedis | RedisClientType | null {
     console.warn('⚠️ No Redis credentials found. Add RAILWAY_REDIS_URL or Upstash credentials');
     return null;
   } catch (error) {
-    console.error('❌ Failed to initialize Redis:', error);
+    console.error('Failed to initialize Redis:', error);
     return null;
   }
 }

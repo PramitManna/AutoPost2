@@ -8,7 +8,7 @@ import { useState, useEffect } from 'react';
 
 export default function ConnectPage() {
   const router = useRouter();
-  const { user, session, signOut, isAuthenticated, loading: authLoading } = useAuth();
+  const { user, session, signOut, isAuthenticated, userId, hasMetaTokens, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(false);
 
   // If not authenticated, redirect to login using useEffect
@@ -37,7 +37,16 @@ export default function ConnectPage() {
   }
 
   const handleMetaConnect = () => {
+    if (!userId) {
+      console.error('❌ No user ID available for Meta connection');
+      return;
+    }
+    
     setLoading(true);
+    
+    // Store userId in cookie so callback can associate tokens with the right user
+    document.cookie = `userId=${userId}; path=/; max-age=3600`; // 1 hour expiry
+    
     const params = new URLSearchParams({
       client_id: process.env.NEXT_PUBLIC_META_APP_ID!,
       redirect_uri: process.env.NEXT_PUBLIC_META_REDIRECT_URI!,
@@ -49,8 +58,10 @@ export default function ConnectPage() {
         'instagram_content_publish'
       ].join(','),
       response_type: 'code',
+      state: userId, // Include userId in state for additional verification
     });
 
+    console.log('🚀 Initiating Meta OAuth for user:', userId);
     window.location.href = `${process.env.NEXT_PUBLIC_META_OAUTH_URL}?${params.toString()}`;
   };
 
@@ -146,6 +157,24 @@ export default function ConnectPage() {
           ))}
         </div>
 
+        {/* Meta Connection Status */}
+        {hasMetaTokens && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg"
+          >
+            <div className="flex items-center gap-3">
+              <FiCheckCircle className="text-green-600 dark:text-green-400" />
+              <div>
+                <p className="text-green-800 dark:text-green-200 font-medium">Meta Accounts Connected</p>
+                <p className="text-green-600 dark:text-green-400 text-sm">You can now publish to Facebook and Instagram</p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
         {/* Meta Connection Button */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -154,14 +183,23 @@ export default function ConnectPage() {
           className="mb-4"
         >
           <button
-            onClick={handleMetaConnect}
-            disabled={loading}
-            className="w-full flex items-center justify-center gap-3 px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-colors font-medium"
+            onClick={hasMetaTokens ? () => router.push('/dashboard') : handleMetaConnect}
+            disabled={loading || !userId}
+            className={`w-full flex items-center justify-center gap-3 px-6 py-3 ${
+              hasMetaTokens 
+                ? 'bg-green-600 hover:bg-green-700' 
+                : 'bg-blue-600 hover:bg-blue-700'
+            } disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-colors font-medium`}
           >
             {loading ? (
               <>
                 <FiLoader className="animate-spin" />
                 Connecting...
+              </>
+            ) : hasMetaTokens ? (
+              <>
+                <FiArrowRight className="w-5 h-5" />
+                Go to Dashboard
               </>
             ) : (
               <>

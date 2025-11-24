@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { FiLoader, FiZap, FiCheckCircle, FiLogOut } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/Button';
+import { UserNavbar } from '@/components/UserNavbar';
 import { useAuth } from '@/context/AuthContext';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 
@@ -12,10 +13,10 @@ function DashboardPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const connected = searchParams.get('connected');
-  const { user, session, signOut, isAuthenticated, loading } = useAuth();
+  const { user, session, signOut, isAuthenticated, loading, userId, hasMetaTokens } = useAuth();
 
   useEffect(() => {
-    // If connected, redirect to upload workflow
+
     if (connected === 'true') {
       router.push('/dashboard/upload?connected=true');
     }
@@ -47,18 +48,19 @@ function DashboardPageContent() {
 
   if (connected !== 'true') {
     return (
-      <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex items-center justify-center px-4 py-12 relative overflow-hidden transition-colors duration-300">
+      <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex items-center justify-center px-4 py-12 relative overflow-hidden transition-colors duration-300 mt-[80px]">
+        <UserNavbar showCancelUpload={false} />
         {/* Subtle background gradients */}
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none mix-blend-multiply dark:mix-blend-normal" />
         <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl pointer-events-none mix-blend-multiply dark:mix-blend-normal" />
 
-        {/* Logout button - top right */}
+        {/* Logout button - fixed position below navbar */}
         <motion.button
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
           onClick={handleLogout}
-          className="absolute top-6 right-6 flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors font-medium z-20"
+          className="fixed top-20 right-6 flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors font-medium z-50"
         >
           <FiLogOut />
           Logout
@@ -105,7 +107,50 @@ function DashboardPageContent() {
                 Authenticated via: <span className="capitalize font-semibold text-zinc-600 dark:text-zinc-300">{session.provider}</span>
               </motion.p>
             )}
+            {userId && (
+              <motion.p
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+                className="text-zinc-400 dark:text-zinc-500 text-xs mt-1"
+              >
+                User ID: {userId}
+              </motion.p>
+            )}
           </div>
+
+          {/* Meta Connection Status */}
+          {hasMetaTokens ? (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+              className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg"
+            >
+              <div className="flex items-center gap-3">
+                <FiCheckCircle className="text-green-600 dark:text-green-400" />
+                <div>
+                  <p className="text-green-800 dark:text-green-200 font-medium">Meta Accounts Connected</p>
+                  <p className="text-green-600 dark:text-green-400 text-sm">Ready to publish to Facebook & Instagram</p>
+                </div>
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+              className="mb-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg"
+            >
+              <div className="flex items-center gap-3">
+                <FiZap className="text-yellow-600 dark:text-yellow-400" />
+                <div>
+                  <p className="text-yellow-800 dark:text-yellow-200 font-medium">Connect Meta Accounts</p>
+                  <p className="text-yellow-600 dark:text-yellow-400 text-sm">Link Facebook & Instagram to start posting</p>
+                </div>
+              </div>
+            </motion.div>
+          )}
 
           <div className="space-y-6 mb-10">
             {[
@@ -117,7 +162,7 @@ function DashboardPageContent() {
                 key={i}
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.5 + (i * 0.1) }}
+                transition={{ delay: 0.6 + (i * 0.1) }}
                 className="flex items-center gap-4 group"
               >
                 <div className="h-8 w-8 rounded-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 flex items-center justify-center shrink-0 group-hover:border-zinc-400 dark:group-hover:border-zinc-700 transition-colors">
@@ -134,18 +179,18 @@ function DashboardPageContent() {
             transition={{ delay: 0.8 }}
           >
             <Button
-              href="/dashboard/upload"
+              href={hasMetaTokens ? "/dashboard/upload?connected=true" : "/connect"}
               variant="primary"
               size="lg"
               className="w-full bg-zinc-900 dark:bg-white text-white dark:text-black hover:bg-zinc-800 dark:hover:bg-zinc-200 border-transparent h-14 text-base font-semibold shadow-xl shadow-zinc-900/10 dark:shadow-white/5"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >
-              Start Creating Posts
+              {hasMetaTokens ? "Start Creating Posts" : "Connect Meta Accounts"}
             </Button>
 
             <p className="mt-6 text-center text-xs text-zinc-400 dark:text-zinc-600 font-medium uppercase tracking-widest">
-              Ready to Post
+              {hasMetaTokens ? "Ready to Post" : "Connect to Continue"}
             </p>
           </motion.div>
 
@@ -174,6 +219,18 @@ function DashboardPageContent() {
                   </span>
                 </p>
               )}
+            </div>
+            
+            {/* Privacy & Data Link */}
+            <div className="mt-4 pt-3 border-t border-zinc-200 dark:border-zinc-700">
+              <Button
+                href="/dashboard/privacy"
+                variant="outline"
+                size="sm"
+                className="w-full text-xs"
+              >
+                Privacy & Data Settings
+              </Button>
             </div>
           </motion.div>
         </motion.div>

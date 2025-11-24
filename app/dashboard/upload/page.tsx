@@ -7,6 +7,9 @@ import { motion } from 'framer-motion';
 import StepIndicator from '@/components/StepIndicator';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { UserNavbar } from '@/components/UserNavbar';
+import { useAuth } from '@/context/AuthContext';
+import { cancelUploadWorkflow } from '@/lib/cancel-workflow';
 import {
   generateSessionId,
   createEmptyWorkflow,
@@ -19,6 +22,7 @@ function UploadPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const connected = searchParams.get('connected');
+  const { isAuthenticated, hasMetaTokens, loading: authLoading } = useAuth();
 
   const [uploadedImages, setUploadedImages] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
@@ -27,20 +31,43 @@ function UploadPageContent() {
   const [progress, setProgress] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Check auth on mount
+
   useEffect(() => {
-    if (connected !== 'true') {
+
+    if (authLoading) return;
+    
+
+    if (!isAuthenticated) {
+      router.push('/login');
+      return;
+    }
+    
+
+    if (!hasMetaTokens && connected !== 'true') {
       router.push('/dashboard');
+      return;
     }
 
-    // Initialize or restore workflow session
+
     let workflow = getWorkflowSession();
     if (!workflow) {
       const sessionId = generateSessionId();
       workflow = createEmptyWorkflow(sessionId);
       saveWorkflowSession(workflow);
     }
-  }, [connected, router]);
+  }, [authLoading, isAuthenticated, hasMetaTokens, connected, router]);
+
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex items-center justify-center">
+        <div className="text-center">
+          <FiLoader className="text-4xl animate-spin text-zinc-900 dark:text-white mx-auto mb-4" />
+          <p className="text-zinc-600 dark:text-zinc-400 font-medium">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleBrowseClick = () => fileInputRef.current?.click();
 
@@ -120,7 +147,7 @@ function UploadPageContent() {
         publicIds.push(data.filename);
       }
 
-      // Save to workflow session and clear old captions/template data
+
       const workflow = updateWorkflowSession({
         imageUrls: urls,
         imagePublicIds: publicIds,
@@ -155,11 +182,27 @@ function UploadPageContent() {
     await processAndUploadImages();
   };
 
-  return (
-    <main className="min-h-screen bg-zinc-50 dark:bg-zinc-950 pb-20">
-      <StepIndicator currentStep="upload" />
+  const handleCancelUpload = async () => {
+    if (confirm('Are you sure you want to cancel this upload? All progress will be lost and uploaded images will be deleted.')) {
+      try {
+        await cancelUploadWorkflow();
+        router.push('/dashboard');
+      } catch (error) {
+        console.error('Error canceling upload:', error);
+        router.push('/dashboard');
+      }
+    }
+  };
 
-      <div className="max-w-3xl mx-auto px-4 py-12 sm:px-6">
+  return (
+    <>
+      <UserNavbar 
+        onCancelUpload={handleCancelUpload}
+        showCancelUpload={true}
+      />
+      <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 pb-20 mt-[60px]">
+        <StepIndicator currentStep="upload" />
+        <main className="max-w-3xl mx-auto px-4 py-8 sm:px-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -290,8 +333,9 @@ function UploadPageContent() {
             </motion.div>
           )}
         </motion.div>
+        </main>
       </div>
-    </main>
+    </>
   );
 }
 

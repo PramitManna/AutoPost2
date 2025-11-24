@@ -1,12 +1,7 @@
 import mongoose from 'mongoose';
 
-const MONGODB_URI = process.env.MONGODB_URI || process.env.RAILWAY_MONGODB_URL || '';
-
-if (!MONGODB_URI) {
-  throw new Error(
-    'Please define the MONGODB_URI or RAILWAY_MONGODB_URL environment variable inside .env'
-  );
-}
+// Don't check environment variables at module load time
+// Check them when the connection function is called instead
 
 /**
  * Global is used here to maintain a cached connection across hot reloads
@@ -31,6 +26,15 @@ if (!global.mongoose) {
 export async function connectToDatabase() {
   if (cached.conn) {
     return cached.conn;
+  }
+
+  // Check environment variables when function is called, not at module load time
+  const MONGODB_URI = process.env.MONGODB_URI || process.env.RAILWAY_MONGODB_URL || '';
+  
+  if (!MONGODB_URI) {
+    throw new Error(
+      'Please define the MONGODB_URI or RAILWAY_MONGODB_URL environment variable inside .env'
+    );
   }
 
   if (!cached.promise) {

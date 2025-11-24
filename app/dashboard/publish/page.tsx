@@ -8,6 +8,9 @@ import { motion } from 'framer-motion';
 import StepIndicator from '@/components/StepIndicator';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { UserNavbar } from '@/components/UserNavbar';
+import { useAuth } from '@/context/AuthContext';
+import { cancelUploadWorkflow } from '@/lib/cancel-workflow';
 import { getWorkflowSession, validateWorkflowStage, clearWorkflowSession } from '@/lib/workflow-session';
 import { SiFacebook, SiInstagram } from 'react-icons/si';
 import type { WorkflowData } from '@/lib/workflow-session';
@@ -16,6 +19,7 @@ function PublishPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const connected = searchParams.get('connected');
+  const { user, isAuthenticated, loading: authLoading } = useAuth();
 
   const [workflow, setWorkflow] = useState<WorkflowData | null>(null);
   const [loading, setLoading] = useState(false);
@@ -61,7 +65,10 @@ function PublishPageContent() {
   };
 
   const postToFacebook = async () => {
-    if (!workflow) return;
+    if (!workflow || !user?.email) {
+      setError('Authentication required. Please log in again.');
+      return;
+    }
 
     setLoading(true);
     setError(null);
@@ -74,8 +81,8 @@ function PublishPageContent() {
         : '/api/social/publish-facebook-multiple';
 
       const body = workflow.imageUrls.length === 1
-        ? { imageUrl: workflow.imageUrls[0], caption: workflow.caption }
-        : { imageUrls: workflow.imageUrls, caption: workflow.caption };
+        ? { imageUrl: workflow.imageUrls[0], caption: workflow.caption, userEmail: user.email }
+        : { imageUrls: workflow.imageUrls, caption: workflow.caption, userEmail: user.email };
 
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -101,7 +108,10 @@ function PublishPageContent() {
   };
 
   const postToInstagram = async () => {
-    if (!workflow) return;
+    if (!workflow || !user?.email) {
+      setError('Authentication required. Please log in again.');
+      return;
+    }
 
     setLoading(true);
     setError(null);
@@ -114,8 +124,8 @@ function PublishPageContent() {
         : '/api/social/publish-instagram-multiple';
 
       const body = workflow.imageUrls.length === 1
-        ? { imageUrl: workflow.imageUrls[0], caption: workflow.caption }
-        : { imageUrls: workflow.imageUrls, caption: workflow.caption };
+        ? { imageUrl: workflow.imageUrls[0], caption: workflow.caption, userEmail: user.email }
+        : { imageUrls: workflow.imageUrls, caption: workflow.caption, userEmail: user.email };
 
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -219,6 +229,18 @@ function PublishPageContent() {
     }
   };
 
+  const handleCancelUpload = async () => {
+    if (confirm('Are you sure you want to cancel this upload? All progress will be lost and uploaded images will be deleted.')) {
+      try {
+        await cancelUploadWorkflow();
+        router.push('/dashboard');
+      } catch (error) {
+        console.error('Error canceling upload:', error);
+        router.push('/dashboard');
+      }
+    }
+  };
+
   if (!workflow) {
     return (
       <main className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex items-center justify-center">
@@ -230,10 +252,14 @@ function PublishPageContent() {
   const postType = workflow.imageUrls.length > 1 ? 'multiple' : 'single';
 
   return (
-    <main className="min-h-screen bg-zinc-50 dark:bg-zinc-950 pb-20">
-      <StepIndicator currentStep="publish" />
-
-      <div className="max-w-4xl mx-auto px-4 py-12 sm:px-6">
+    <>
+      <UserNavbar 
+        onCancelUpload={handleCancelUpload}
+        showCancelUpload={true}
+      />
+      <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 pb-20 mt-[60px]">
+        <StepIndicator currentStep="publish" />
+        <main className="max-w-4xl mx-auto px-4 py-8 sm:px-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -525,11 +551,10 @@ function PublishPageContent() {
             </div>
           </div>
         </motion.div>
-      </div>
 
-      {/* Empty Room Modal */}
-      {showEmptyRoomModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        {/* Empty Room Modal */}
+        {showEmptyRoomModal && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -637,8 +662,10 @@ function PublishPageContent() {
             </div>
           </motion.div>
         </div>
-      )}
-    </main>
+        )}
+        </main>
+      </div>
+    </>
   );
 }
 

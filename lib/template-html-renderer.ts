@@ -191,15 +191,13 @@ export async function renderTemplateToImage(
 
     // Wait for all images to load with better error handling
     const images = element.querySelectorAll('img');
-    console.log('Found images in template:', images.length);
+
 
     for (const img of Array.from(images)) {
-      console.log('Image src:', img.src);
-      console.log('Image complete:', img.complete);
-      console.log('Image naturalWidth:', img.naturalWidth);
+
 
       if (!img.complete || img.naturalWidth === 0) {
-        console.log('Waiting for image to load...');
+
         await new Promise((resolve) => {
           const timeout = setTimeout(() => {
             console.warn('Image load timeout for:', img.src);
@@ -208,7 +206,7 @@ export async function renderTemplateToImage(
 
           img.onload = () => {
             clearTimeout(timeout);
-            console.log('Image loaded successfully:', img.src);
+
             resolve(img);
           };
 
@@ -226,7 +224,7 @@ export async function renderTemplateToImage(
           }
         });
       } else {
-        console.log('Image already loaded:', img.src);
+
       }
     }
 
@@ -234,8 +232,7 @@ export async function renderTemplateToImage(
     const win = window as unknown as Record<string, unknown>;
     const html2canvas = win.html2canvas as (element: HTMLElement, options: Record<string, unknown>) => Promise<HTMLCanvasElement>;
 
-    console.log('Starting html2canvas rendering...');
-    console.log('Element dimensions:', element.offsetWidth, 'x', element.offsetHeight);
+
 
     const canvas = await html2canvas(element, {
       scale: 1, // Force scale 1 for exact size
@@ -251,15 +248,15 @@ export async function renderTemplateToImage(
       foreignObjectRendering: false, // Try without foreign object rendering
       logging: true, // Enable logging for debugging
       onclone: (clonedDoc: Document) => {
-        console.log('html2canvas cloned document');
+
         const clonedElement = clonedDoc.body.querySelector('div');
         if (clonedElement) {
-          console.log('Cloned element found:', clonedElement.offsetWidth, 'x', clonedElement.offsetHeight);
+
         }
       }
     });
 
-    console.log('html2canvas completed, canvas size:', canvas.width, 'x', canvas.height);
+
 
     const dataUrl = canvas.toDataURL('image/png', 1.0);
 

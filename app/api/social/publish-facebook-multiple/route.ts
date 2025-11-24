@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import axios from "axios";
-import { generateUserId, getValidToken } from "@/lib/token-manager";
 
 export async function POST(req: NextRequest) {
   try {
-    const { imageUrls, caption } = await req.json();
+    const { imageUrls, caption, userEmail } = await req.json();
 
     if (!imageUrls || !Array.isArray(imageUrls) || imageUrls.length === 0) {
       return NextResponse.json(
@@ -13,25 +12,41 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!caption) {
+    if (!caption || !userEmail) {
       return NextResponse.json(
-        { error: "Missing required field: caption" },
+        { error: "Missing required fields: caption, userEmail" },
         { status: 400 }
       );
     }
 
-    // Get userId and fetch stored token from database
-    const userId = generateUserId(req);
-    const user = await getValidToken(userId);
+    console.log(`📱 Publishing multiple images to Facebook for user: ${userEmail}`);
 
-    if (!user) {
+    // Get user's access token by email
+    const tokenResponse = await fetch(`${req.nextUrl.origin}/api/user/token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: userEmail })
+    });
+
+    if (!tokenResponse.ok) {
       return NextResponse.json(
-        { error: "No valid token found. Please connect your Meta account first." },
+        { error: "No valid Meta token found. Please connect your Meta account first." },
         { status: 401 }
       );
     }
 
-    const { accessToken, pageId } = user;
+    const { accessToken, user } = await tokenResponse.json();
+    
+    if (!accessToken || !user.pageId) {
+      return NextResponse.json(
+        { error: "Invalid token or no Facebook page connected" },
+        { status: 401 }
+      );
+    }
+
+    console.log(`✅ Publishing to page: ${user.pageName} for user: ${userEmail}`);
+
+    const { pageId } = user;
 
 
     // Step 1: Get Page Access Token

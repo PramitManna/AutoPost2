@@ -7,6 +7,8 @@ import { motion } from 'framer-motion';
 import StepIndicator from '@/components/StepIndicator';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { UserNavbar } from '@/components/UserNavbar';
+import { cancelUploadWorkflow } from '@/lib/cancel-workflow';
 import { getWorkflowSession, updateWorkflowSession, validateWorkflowStage } from '@/lib/workflow-session';
 import type { WorkflowData } from '@/lib/workflow-session';
 
@@ -120,6 +122,18 @@ export default function CaptionPage() {
     }
   };
 
+  const handleCancelUpload = async () => {
+    if (confirm('Are you sure you want to cancel this upload? All progress will be lost and uploaded images will be deleted.')) {
+      try {
+        await cancelUploadWorkflow();
+        router.push('/dashboard');
+      } catch (error) {
+        console.error('Error canceling upload:', error);
+        router.push('/dashboard');
+      }
+    }
+  };
+
   if (!workflow) {
     return (
       <main className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex items-center justify-center">
@@ -129,10 +143,14 @@ export default function CaptionPage() {
   }
 
   return (
-    <main className="min-h-screen bg-zinc-50 dark:bg-zinc-950 pb-20">
-      <StepIndicator currentStep="caption" />
-
-      <div className="max-w-3xl mx-auto px-4 py-12 sm:px-6">
+    <>
+      <UserNavbar 
+        onCancelUpload={handleCancelUpload}
+        showCancelUpload={true}
+      />
+      <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 pb-20 mt-[60px]">
+        <StepIndicator currentStep="caption" />
+        <main className="max-w-3xl mx-auto px-4 py-8 sm:px-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -241,7 +259,8 @@ export default function CaptionPage() {
             </Button>
           </div>
         </motion.div>
+        </main>
       </div>
-    </main>
+    </>
   );
 }

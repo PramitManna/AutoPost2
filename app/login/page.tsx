@@ -26,6 +26,7 @@ export default function LoginPage() {
       setError(null);
       await signInWithGoogle();
       console.log('✅ Google sign-in completed');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       console.error('❌ Google sign-in failed:', err);
       setError(err.message || 'Failed to sign in with Google');
@@ -40,6 +41,7 @@ export default function LoginPage() {
       setError(null);
       await signInWithTwitter();
       console.log('✅ Twitter sign-in completed');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       console.error('❌ Twitter sign-in failed:', err);
       setError(err.message || 'Failed to sign in with Twitter');

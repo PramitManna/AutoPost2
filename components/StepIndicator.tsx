@@ -19,7 +19,7 @@ export default function StepIndicator({ currentStep }: StepIndicatorProps) {
   const currentIndex = stepOrder.indexOf(currentStep);
 
   return (
-    <div className="w-full bg-white/80 backdrop-blur-md border-b border-zinc-200 dark:bg-zinc-950/80 dark:border-zinc-800 sticky top-0 z-50">
+    <div className="w-full bg-white/80 backdrop-blur-md border-b border-zinc-200 dark:bg-zinc-950/80 dark:border-zinc-800 sticky top-16 z-40">
       <div className="max-w-3xl mx-auto px-4 py-4">
         <div className="flex items-center justify-between relative">
           {/* Progress Bar Background */}

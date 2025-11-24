@@ -8,6 +8,8 @@ import StepIndicator from '@/components/StepIndicator';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { UserNavbar } from '@/components/UserNavbar';
+import { cancelUploadWorkflow } from '@/lib/cancel-workflow';
 import { getWorkflowSession, updateWorkflowSession, validateWorkflowStage } from '@/lib/workflow-session';
 import type { WorkflowData } from '@/lib/workflow-session';
 
@@ -16,6 +18,8 @@ export default function ListingPage() {
   const [workflow, setWorkflow] = useState<WorkflowData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  console.log('ListingPage: Rendering with UserNavbar component');
 
   // Form state
   const [address, setAddress] = useState('');
@@ -86,6 +90,18 @@ export default function ListingPage() {
     }
   };
 
+  const handleCancelUpload = async () => {
+    if (confirm('Are you sure you want to cancel this upload? All progress will be lost and uploaded images will be deleted.')) {
+      try {
+        await cancelUploadWorkflow();
+        router.push('/dashboard');
+      } catch (error) {
+        console.error('Error canceling upload:', error);
+        router.push('/dashboard');
+      }
+    }
+  };
+
   if (!workflow) {
     return (
       <main className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex items-center justify-center">
@@ -97,10 +113,14 @@ export default function ListingPage() {
   const selectClassName = "w-full px-4 py-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl focus:ring-2 focus:ring-zinc-900 dark:focus:ring-zinc-50 focus:border-transparent text-zinc-900 dark:text-zinc-50 transition-all appearance-none cursor-pointer";
 
   return (
-    <main className="min-h-screen bg-zinc-50 dark:bg-zinc-950 pb-20">
-      <StepIndicator currentStep="listing" />
-
-      <div className="max-w-3xl mx-auto px-4 py-12 sm:px-6">
+    <>
+      <UserNavbar 
+        onCancelUpload={handleCancelUpload}
+        showCancelUpload={true}
+      />
+      <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 pb-20 mt-[60px]">
+        <StepIndicator currentStep="listing" />
+        <main className="max-w-3xl mx-auto px-4 py-8 sm:px-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -140,7 +160,7 @@ export default function ListingPage() {
               {/* Zip Code */}
               <div>
                 <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                  Zip Code (Optional)
+                  Zip Code
                 </label>
                 <Input
                   value={zipCode}
@@ -371,7 +391,8 @@ export default function ListingPage() {
             </div>
           </Card>
         </motion.div>
+        </main>
       </div>
-    </main>
+    </>
   );
 }

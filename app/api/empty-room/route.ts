@@ -72,7 +72,11 @@ async function emptyRoom(imageUrl: string): Promise<{ url: string; publicId: str
                 {
                     parts: [
                         {
-                            text: "Remove all furniture, decorations, and objects from this room. Show only the empty space with walls, floors, ceiling, windows, and architectural features. Maintain the original lighting, perspective, and room dimensions. Keep the room's structure, colors, and architectural details exactly as they are."
+                            text: `
+                            Remove only movable objects from this room, such as furniture (sofas, beds, chairs, tables, shelves), decorations, electronics, rugs, and any loose items. Do NOT add, modify, replace, or infer any new objects, textures, materials, lighting, or colors. Do NOT alter fixed architectural features such as walls, floors, ceilings, windows, doors, built-in fixtures, or permanent room structures.
+Maintain the original room layout, perspective, proportions, colors, materials, lighting, shadows, and textures exactly as they appear.
+Do not change the floor material, wall colors, window shapes, or any permanent surface. Simply show the room as it is, but empty of movable items—nothing more, nothing less. No assumptions, no additions, no replacements.
+                            `
                         },
                         {
                             inline_data: {

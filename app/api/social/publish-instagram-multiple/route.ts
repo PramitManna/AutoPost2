@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import axios from "axios";
-import { generateUserId, getValidToken } from "@/lib/token-manager";
 
 export async function POST(req: NextRequest) {
   try {
-    const { imageUrls, caption } = await req.json();
+    const { imageUrls, caption, userEmail } = await req.json();
 
     if (!imageUrls || !Array.isArray(imageUrls) || imageUrls.length === 0) {
       return NextResponse.json(
@@ -20,32 +19,41 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!caption) {
+    if (!caption || !userEmail) {
       return NextResponse.json(
-        { error: "Missing required field: caption" },
+        { error: "Missing required fields: caption, userEmail" },
         { status: 400 }
       );
     }
 
-    // Get userId and fetch stored token from database
-    const userId = generateUserId(req);
-    const user = await getValidToken(userId);
 
-    if (!user) {
+
+    // Get user's access token by email
+    const tokenResponse = await fetch(`${req.nextUrl.origin}/api/user/token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: userEmail })
+    });
+
+    if (!tokenResponse.ok) {
       return NextResponse.json(
-        { error: "No valid token found. Please connect your Meta account first." },
+        { error: "No valid Meta token found. Please connect your Meta account first." },
         { status: 401 }
       );
     }
 
-    if (!user.igBusinessId) {
+    const { accessToken, user } = await tokenResponse.json();
+
+    if (!accessToken || !user.igBusinessId) {
       return NextResponse.json(
         { error: "No Instagram Business account connected. Please connect one from your Facebook page." },
         { status: 400 }
       );
     }
 
-    const { accessToken, igBusinessId } = user;
+
+
+    const { igBusinessId } = user;
 
 
     // Step 1: Create media containers for each image
@@ -136,7 +144,7 @@ export async function POST(req: NextRequest) {
 
     // If we exhausted retries, throw the last error
     if (!publishRes) {
-      console.error(" Failed to publish after all retries");
+      console.error("Failed to publish after all retries");
       throw lastError;
     }
 
@@ -149,7 +157,7 @@ export async function POST(req: NextRequest) {
 
   } catch (error) {
     const err = error as { response?: { status: number; data: unknown }; message: string };
-    console.error(" Instagram carousel publishing error:", err);
+    console.error("Instagram carousel publishing error:", err);
     
     if (err.response) {
       console.error("Error response:", err.response.data);

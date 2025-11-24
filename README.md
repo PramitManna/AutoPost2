@@ -1,4 +1,6 @@
-# AutoPost - Automated Social Media Management System
+# AutoPost - Secure Social Media Publishing Platform
+
+A production-ready social media automation platform with enterprise-grade security, built for Meta App Review compliance and scalable deployment.
 
 A production-ready Next.js application for automating social media posts to Facebook and Instagram with AI-powered captions, professional templates, and cost optimization.
 
@@ -10,6 +12,14 @@ A production-ready Next.js application for automating social media posts to Face
 - **Professional Templates**: 6+ pre-built templates for real estate, products, sales, and events
 - **Live Preview**: See your posts before publishing
 - **Automatic Image Cleanup**: Images deleted from Cloudinary after successful posting
+
+### 🔒 Production Security
+- **Token Encryption**: AES-256-GCM encryption for all access tokens
+- **Secure Storage**: Encrypted token storage with automatic expiration
+- **Rate Limiting**: API protection with configurable limits
+- **Webhook Validation**: HMAC signature verification for Meta webhooks
+- **GDPR Compliance**: Data retention policies and user privacy controls
+- **Security Headers**: Comprehensive security header implementation
 
 ### 💰 Cost-Optimized for 1000+ Users
 - **Redis Caching**: 30-day TTL with 95% hit rate
@@ -61,17 +71,33 @@ npm run dev
 
 ## 🔐 Environment Variables
 
+### Production Environment Setup
+
+```bash
+# Generate secure encryption key
+export TOKEN_ENCRYPTION_KEY=$(openssl rand -hex 32)
+export NEXTAUTH_SECRET=$(openssl rand -base64 32)
+```
+
 Create `.env.local` file:
 
 ```env
-# Meta/Facebook
-NEXT_PUBLIC_META_APP_ID=your_meta_app_id
-NEXT_PUBLIC_META_APP_SECRET=your_meta_app_secret
-NEXT_PUBLIC_META_OAUTH_URL=https://www.facebook.com/v21.0/dialog/oauth
-NEXT_PUBLIC_META_REDIRECT_URI=http://localhost:3000/api/meta/callback
+# Security & Encryption (REQUIRED for production)
+TOKEN_ENCRYPTION_KEY=your_32_character_encryption_key_here_minimum_length
+NEXTAUTH_SECRET=your_nextauth_secret_here
+NEXTAUTH_URL=https://yourdomain.com
 
-# Google Gemini AI
-GEMINI_API_KEY=your_gemini_api_key
+# Meta/Facebook API
+META_APP_ID=your_meta_app_id
+META_APP_SECRET=your_meta_app_secret
+NEXT_PUBLIC_META_APP_ID=your_meta_app_id
+NEXT_PUBLIC_META_OAUTH_URL=https://www.facebook.com/v21.0/dialog/oauth
+NEXT_PUBLIC_META_REDIRECT_URI=https://yourdomain.com/api/meta/callback
+META_REDIRECT_URI=https://yourdomain.com/api/meta/callback
+META_WEBHOOK_VERIFY_TOKEN=your_webhook_verify_token
+
+# Database
+MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/autopost?retryWrites=true&w=majority
 
 # Redis (Railway - Primary)
 RAILWAY_REDIS_URL=your_railway_redis_url
@@ -80,13 +106,17 @@ RAILWAY_REDIS_URL=your_railway_redis_url
 UPSTASH_REDIS_REST_URL=your_upstash_url
 UPSTASH_REDIS_REST_TOKEN=your_upstash_token
 
-# MongoDB (Railway)
-MONGODB_URI=your_mongodb_connection_string
-
-# Cloudinary
+# AI & Image Processing
+GEMINI_API_KEY=your_gemini_api_key
 CLOUDINARY_CLOUD_NAME=your_cloud_name
 CLOUDINARY_API_KEY=your_api_key
 CLOUDINARY_API_SECRET=your_api_secret
+
+# Production Configuration
+NODE_ENV=production
+LOG_LEVEL=info
+RATE_LIMIT_MAX_REQUESTS=100
+RATE_LIMIT_WINDOW_MINUTES=15
 ```
 
 ## 📚 Documentation
@@ -130,6 +160,29 @@ CLOUDINARY_API_SECRET=your_api_secret
    Click "Post to Facebook" or "Post to Instagram"
    Images auto-delete after successful posting
    ```
+
+## 🔒 Security Architecture
+
+### Token Security
+- **AES-256-GCM Encryption**: All Meta access tokens encrypted at rest
+- **Secure Key Management**: Environment-based encryption keys
+- **Token Rotation**: Automatic refresh before expiration
+- **Activity Tracking**: User activity monitoring for security
+- **Audit Logging**: Complete audit trail of token usage
+
+### Data Protection
+- **GDPR Compliance**: User consent tracking and data retention policies
+- **Data Minimization**: Only collect and store necessary data
+- **Automatic Cleanup**: Expired tokens and inactive users automatically removed
+- **Right to Delete**: Users can request complete data deletion
+- **Secure Headers**: Comprehensive security headers for production
+
+### API Security
+- **Rate Limiting**: Configurable rate limits for all endpoints
+- **Webhook Validation**: HMAC signature verification for Meta webhooks
+- **Input Sanitization**: All user inputs properly validated and sanitized
+- **CSRF Protection**: Cross-site request forgery protection
+- **Session Security**: Secure session management with NextAuth
 
 ## 💡 Key Features Explained
 
@@ -278,23 +331,90 @@ Auto-Delete Images from Cloudinary
 - Verify publicId is correct
 - Review cleanup logs in browser console
 
-## 🚀 Deployment
+## 🚀 Production Deployment
+
+### Pre-Deployment Security Checklist
+
+1. **Environment Setup**
+   ```bash
+   # Generate secure keys
+   export TOKEN_ENCRYPTION_KEY=$(openssl rand -hex 32)
+   export NEXTAUTH_SECRET=$(openssl rand -base64 32)
+   export META_WEBHOOK_VERIFY_TOKEN=$(openssl rand -hex 16)
+   ```
+
+2. **Database Preparation**
+   ```bash
+   # Create production database indexes
+   npm run db:setup-production
+   ```
+
+3. **Security Validation**
+   ```bash
+   # Validate production environment
+   npm run validate-production
+   ```
 
 ### Vercel Deployment
+
 ```bash
 # Install Vercel CLI
 npm i -g vercel
 
-# Deploy
-vercel
+# Deploy with production settings
+vercel --prod
 
-# Set environment variables in Vercel dashboard
+# Set all environment variables in Vercel dashboard
+# Import from .env.example for reference
+```
+
+### Meta App Review Preparation
+
+1. **Complete Production Checklist**
+   - See [PRODUCTION_CHECKLIST.md](PRODUCTION_CHECKLIST.md) for details
+
+2. **Configure Meta App Settings**
+   ```
+   - Add production domain to App Domains
+   - Set OAuth redirect URIs to production URLs  
+   - Configure webhook endpoints
+   - Submit for app review with required permissions
+   ```
+
+3. **Required Documentation**
+   - Privacy Policy (must be publicly accessible)
+   - Terms of Service 
+   - App functionality video demonstration
+   - Permission usage justification
+
+### Production Monitoring
+
+```bash
+# Health check endpoint
+curl https://yourdomain.com/api/health
+
+# Webhook verification
+curl https://yourdomain.com/api/webhooks/meta
+
+# Scheduled cleanup (set up as cron job)
+node scripts/cleanup-job.ts
 ```
 
 ### Production Checklist
-- [ ] Set all environment variables
-- [ ] Configure MongoDB connection
-- [ ] Set up Redis (Railway recommended)
+- [ ] ✅ Set all environment variables with secure values
+- [ ] ✅ Configure production MongoDB connection
+- [ ] ✅ Set up Redis (Railway recommended for production)
+- [ ] ✅ Enable HTTPS with valid SSL certificate
+- [ ] ✅ Configure security headers and CSP
+- [ ] ✅ Set up error monitoring (Sentry recommended)
+- [ ] ✅ Configure automated backups
+- [ ] ✅ Implement rate limiting and DDoS protection
+- [ ] ✅ Set up health check monitoring
+- [ ] ✅ Configure log aggregation
+- [ ] ✅ Test Meta webhook endpoints
+- [ ] ✅ Validate token encryption/decryption
+- [ ] ✅ Set up automated cleanup jobs
+- [ ] ✅ Complete Meta app review process
 - [ ] Configure Cloudinary
 - [ ] Update Meta redirect URI
 - [ ] Test template rendering
