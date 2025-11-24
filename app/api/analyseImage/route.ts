@@ -176,6 +176,7 @@ EXAMPLE OUTPUT:
 - Special Features: Waterfall island
 
 Discover this charming 4-bedroom, 3-bathroom townhome, encompassing 1,938 sqft of thoughtfully designed living space. The open-concept layout features a modern kitchen with waterfall island, bright dining and living areas, and large windows that bring in natural light. Surrounded by greenery with plenty of side-street parking in East Newton, Surrey, this home blends style, comfort, and everyday convenience.
+#townhome #realestate #propertylisting #dreamhome
 
 CRITICAL RULES:
 1. DO NOT invent or guess the location. Use ONLY the location provided in the listing details. If no location is provided, use "Not specified".
@@ -192,6 +193,9 @@ ${descriptions.map((desc, index) => `Image ${index + 1}: ${desc}`).join('\n\n')}
 ${listingContext}
 
 NOW: Create the final property caption following the EXACT format above. Combine the image descriptions with the listing information into one polished, flowing narrative. Output ONLY the caption text, nothing else.
+
+Note: also add some relevant hashtags at the end.
+
 `;
 
       const finalResult = await model.generateContent(finalPrompt);
@@ -251,6 +255,7 @@ ${descriptions[0]}
 ${listingContext}
 
 NOW: Create the final property caption following the EXACT format above. Combine the image description with the listing information into one polished narrative. Output ONLY the caption text, nothing else.
+Note: also add some relevant hashtags at the end.
 `;
 
       const singleResult = await model.generateContent(singleImagePrompt);
