@@ -167,14 +167,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
+  const getRedirectUrl = () => {
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+    return `${siteUrl || window.location.origin}/connect`;
+  };
+
   const signInWithGoogle = async () => {
+    const redirectUrl = getRedirectUrl();
     console.log('🔵 Initiating Google sign-in...');
-    console.log('📍 Redirect URL:', `${window.location.origin}/connect`);
+    console.log('📍 Redirect URL:', redirectUrl);
     
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/connect`,
+        redirectTo: redirectUrl,
         queryParams: {
           access_type: 'offline',
           prompt: 'consent',
@@ -191,13 +197,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signInWithTwitter = async () => {
+    const redirectUrl = getRedirectUrl();
     console.log('🔵 Initiating Twitter sign-in...');
-    console.log('📍 Redirect URL:', `${window.location.origin}/connect`);
+    console.log('📍 Redirect URL:', redirectUrl);
     
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'twitter',
       options: {
-        redirectTo: `${window.location.origin}/connect`,
+        redirectTo: redirectUrl,
       },
     });
 
