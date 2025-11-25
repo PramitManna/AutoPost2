@@ -63,7 +63,7 @@ const UserSchema: Schema = new Schema(
     },
     encryptedAccessToken: {
       type: String,
-      required: true,
+      default: '', // Empty string for users without Meta tokens
       select: false, // Don't include in queries by default for security
     },
     tokenExpiry: {

@@ -21,38 +21,30 @@ export async function POST(req: NextRequest) {
     
     await connectToDatabase();
     
-    // Check if user already exists
-    let user = await User.findOne({ userId });
-    
-    if (user) {
-      // Update existing user profile
-      user.email = email;
-      user.userName = userName || email.split('@')[0];
-      user.lastActivity = new Date();
-      user.updatedAt = new Date();
-      
-      await user.save();
-      
-
-    } else {
-      // Create new user profile - using minimal required fields
-      user = new User({
-        userId,
+    // Use findOneAndUpdate to avoid duplicate key errors
+    let user = await User.findOneAndUpdate(
+      { userId },
+      {
         email,
         userName: userName || email.split('@')[0],
-        encryptedAccessToken: '', // Will be set when Meta tokens are connected
-        tokenExpiry: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000), // Default 60 days from now
-        isActive: false, // Will be set to true when Meta tokens are connected
-        permissions: [],
-        createdAt: new Date(),
+        lastActivity: new Date(),
         updatedAt: new Date(),
-        lastActivity: new Date()
-      });
-      
-      await user.save();
-      
-
-    }
+        $setOnInsert: {
+          encryptedAccessToken: '', // Will be set when Meta tokens are connected
+          tokenExpiry: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000), // Default 60 days from now
+          isActive: false, // Will be set to true when Meta tokens are connected
+          permissions: [],
+          createdAt: new Date(),
+          dataRetentionConsent: new Date()
+        }
+      },
+      {
+        upsert: true,
+        new: true,
+        runValidators: true
+      }
+    );
+    
     
     // Return safe profile data
     const profileData = {
