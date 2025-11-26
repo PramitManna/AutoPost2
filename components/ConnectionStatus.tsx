@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { FiCheckCircle, FiAlertCircle, FiInstagram } from 'react-icons/fi';
+import { FiCheckCircle, FiAlertCircle, FiInstagram, FiRefreshCw } from 'react-icons/fi';
 import { FaFacebook } from 'react-icons/fa';
 
 interface ConnectionStatusProps {
@@ -20,42 +20,49 @@ export function ConnectionStatus({ userId }: ConnectionStatusProps) {
   const [activePage, setActivePage] = useState<PageInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [hasPages, setHasPages] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    const fetchConnectionStatus = async () => {
-      try {
-        const response = await fetch(`/api/user/pages?userId=${userId}`);
-        if (response.ok) {
-          const data = await response.json();
-          console.log('Connection status data:', data); // Debug log
-          
-          if (data.pages && data.pages.length > 0) {
-            setHasPages(true);
-            // Find the active page
-            const active = data.pages.find((p: PageInfo & { isActive?: boolean }) => p.isActive);
-            setActivePage(active || data.pages[0] || null);
-          } else {
-            setHasPages(false);
-            setActivePage(null);
-          }
+  const fetchConnectionStatus = async () => {
+    try {
+      const response = await fetch(`/api/user/pages?userId=${userId}`);
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Connection status data:', data); // Debug log
+        
+        if (data.pages && data.pages.length > 0) {
+          setHasPages(true);
+          // Find the active page
+          const active = data.pages.find((p: PageInfo & { isActive?: boolean }) => p.isActive);
+          setActivePage(active || data.pages[0] || null);
         } else {
-          console.error('Failed to fetch pages:', response.status);
           setHasPages(false);
           setActivePage(null);
         }
-      } catch (error) {
-        console.error('Failed to fetch connection status:', error);
+      } else {
+        console.error('Failed to fetch pages:', response.status);
         setHasPages(false);
         setActivePage(null);
-      } finally {
-        setLoading(false);
       }
-    };
+    } catch (error) {
+      console.error('Failed to fetch connection status:', error);
+      setHasPages(false);
+      setActivePage(null);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
 
+  useEffect(() => {
     if (userId) {
       fetchConnectionStatus();
     }
   }, [userId]);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await fetchConnectionStatus();
+  };
 
   if (loading) {
     return null;
@@ -144,10 +151,32 @@ export function ConnectionStatus({ userId }: ConnectionStatusProps) {
             </div>
           </div>
 
-          {!fullyConnected && (
+          {!fullyConnected && hasFacebook && !hasInstagram && (
+            <>
+              <p className="text-yellow-600 dark:text-yellow-400 text-xs mt-3 mb-2">
+                Connect Instagram to your Facebook Page: Go to your Facebook Page settings → Instagram → Connect Account. Then reconnect below.
+              </p>
+              <div className="flex gap-2 mt-2">
+                <button 
+                  onClick={handleRefresh}
+                  disabled={refreshing}
+                  className="flex-1 px-3 py-1.5 text-xs font-medium bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300 rounded-md hover:bg-yellow-200 dark:hover:bg-yellow-900/60 transition-colors disabled:opacity-50 flex items-center justify-center gap-1"
+                >
+                  <FiRefreshCw className={refreshing ? 'animate-spin' : ''} />
+                  {refreshing ? 'Refreshing...' : 'Refresh Status'}
+                </button>
+                <a
+                  href="/connect"
+                  className="flex-1 px-3 py-1.5 text-xs font-medium bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center gap-1"
+                >
+                  Reconnect Meta
+                </a>
+              </div>
+            </>
+          )}
+          {!fullyConnected && !hasFacebook && (
             <p className="text-yellow-600 dark:text-yellow-400 text-xs mt-3">
-              {!hasFacebook && 'Connect a Facebook Page to continue. '}
-              {hasFacebook && !hasInstagram && 'Connect Instagram Business Account from your Facebook Page settings.'}
+              Connect a Facebook Page to continue.
             </p>
           )}
         </div>

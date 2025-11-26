@@ -169,30 +169,43 @@ export async function GET(req: NextRequest) {
     // Fetch Instagram accounts for all pages
     const pagesWithInstagram = await Promise.all(
       pagesRes.data.data.map(async (page: any) => {
+        console.log(`\n--- Checking Instagram for page: ${page.name} (${page.id}) ---`);
         let igBusinessId = null;
         let igUsername = null;
         
         try {
+          console.log(`Requesting Instagram Business Account for page ${page.id}...`);
           const igRes = await axios.get(
-            `https://graph.facebook.com/${page.id}?fields=instagram_business_account&access_token=${longToken}`
+            `https://graph.facebook.com/${page.id}?fields=instagram_business_account&access_token=${page.access_token}`
           );
+          console.log(`Instagram API Response for ${page.name}:`, JSON.stringify(igRes.data, null, 2));
+          
           igBusinessId = igRes.data.instagram_business_account?.id;
           
           if (igBusinessId) {
+            console.log(`✓ Instagram Business Account found: ${igBusinessId}`);
             try {
               const igUserRes = await axios.get(
-                `https://graph.facebook.com/${igBusinessId}?fields=username&access_token=${longToken}`
+                `https://graph.facebook.com/${igBusinessId}?fields=username,name,profile_picture_url&access_token=${page.access_token}`
               );
+              console.log(`Instagram User Details:`, JSON.stringify(igUserRes.data, null, 2));
               igUsername = igUserRes.data.username;
+              console.log(`✓ Instagram Username: @${igUsername}`);
             } catch (error) {
-              console.warn(`Could not fetch Instagram username for page ${page.name}:`, error instanceof Error ? error.message : error);
+              console.error(`✗ Could not fetch Instagram username for page ${page.name}:`, error instanceof Error ? error.message : error);
             }
+          } else {
+            console.log(`✗ No Instagram Business Account linked to page ${page.name}`);
           }
-        } catch (igError) {
-          console.warn(`Instagram lookup failed for page ${page.name}:`, igError instanceof Error ? igError.message : igError);
+        } catch (igError: any) {
+          console.error(`✗ Instagram lookup failed for page ${page.name}:`, {
+            message: igError?.message,
+            response: igError?.response?.data,
+            status: igError?.response?.status
+          });
         }
         
-        return {
+        const result = {
           pageId: page.id,
           pageName: page.name,
           pageToken: page.access_token,
@@ -201,14 +214,23 @@ export async function GET(req: NextRequest) {
           igBusinessId: igBusinessId || undefined,
           igUsername: igUsername || undefined,
         };
+        
+        console.log(`Result for ${page.name}:`, {
+          hasInstagram: !!igBusinessId,
+          username: igUsername || 'Not connected'
+        });
+        
+        return result;
       })
     );
     
+    console.log("\n=== FINAL PAGES SUMMARY ===");
     console.log("Pages with Instagram data:", pagesWithInstagram.map(p => ({
       name: p.pageName,
       hasInstagram: !!p.igBusinessId,
-      igUsername: p.igUsername
+      igUsername: p.igUsername || 'Not connected'
     })));
+    console.log("========================\n");
 
     console.log("Step 7: Storing user with multiple pages...");
     await storeUserPages(userId, {

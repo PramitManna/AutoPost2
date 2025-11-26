@@ -336,7 +336,7 @@ export async function getUserByEmail(email: string): Promise<{
   const user = await User.findOne({ 
     email, 
     isActive: true 
-  }).select('+encryptedAccessToken +pages');
+  }).select('+encryptedAccessToken +pages.encryptedPageToken');
 
   if (!user) {
 
