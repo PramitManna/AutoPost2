@@ -134,6 +134,156 @@ export async function storeUserToken(
 }
 
 /**
+ * Store multiple pages for a user (new multi-page support)
+ */
+export async function storeUserPages(
+  userId: string,
+  userData: {
+    accessToken: string; // User-level token
+    pages: Array<{
+      pageId: string;
+      pageName: string;
+      pageToken: string;
+      category?: string;
+      tasks?: string[];
+      igBusinessId?: string;
+      igUsername?: string;
+    }>;
+    userName?: string;
+    email?: string;
+    metaUserId?: string;
+    permissions?: string[];
+  }
+): Promise<IUser> {
+  await connectToDatabase();
+
+  // Calculate token expiry (60 days from now)
+  const tokenExpiry = new Date();
+  tokenExpiry.setDate(tokenExpiry.getDate() + 60);
+
+  // Find existing user or create new one
+  let user = await User.findOne({ userId }).select('+encryptedAccessToken +pages');
+  
+  if (user) {
+    // Update existing user
+    user.userName = userData.userName;
+    user.email = userData.email;
+    user.metaUserId = userData.metaUserId;
+    user.permissions = userData.permissions || [];
+    user.tokenExpiry = tokenExpiry;
+    user.tokenRefreshedAt = new Date();
+    user.isActive = true;
+    user.lastActivity = new Date();
+    
+    // Encrypt and store the user-level token
+    user.setEncryptedToken(userData.accessToken);
+    
+    // Store all pages with their tokens
+    user.pages = userData.pages.map(page => {
+      const iv = crypto.randomBytes(16);
+      const key = getEncryptionKey();
+      const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
+      
+      let encrypted = cipher.update(page.pageToken, 'utf8', 'hex');
+      encrypted += cipher.final('hex');
+      
+      return {
+        pageId: page.pageId,
+        pageName: page.pageName,
+        encryptedPageToken: iv.toString('hex') + ':' + encrypted,
+        category: page.category,
+        tasks: page.tasks,
+        igBusinessId: page.igBusinessId,
+        igUsername: page.igUsername,
+      };
+    });
+    
+    // Set active page to first page if not already set
+    if (!user.activePageId && userData.pages.length > 0) {
+      user.activePageId = userData.pages[0].pageId;
+    }
+    
+    // Also store first page data in legacy fields for backwards compatibility
+    if (userData.pages.length > 0) {
+      const firstPage = userData.pages[0];
+      user.pageId = firstPage.pageId;
+      user.pageName = firstPage.pageName;
+      user.igBusinessId = firstPage.igBusinessId;
+      user.igUsername = firstPage.igUsername;
+    }
+    
+    await user.save();
+  } else {
+    // Create new user with all pages
+    const encryptedPages = userData.pages.map(page => {
+      const iv = crypto.randomBytes(16);
+      const key = getEncryptionKey();
+      const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
+      
+      let encrypted = cipher.update(page.pageToken, 'utf8', 'hex');
+      encrypted += cipher.final('hex');
+      
+      return {
+        pageId: page.pageId,
+        pageName: page.pageName,
+        encryptedPageToken: iv.toString('hex') + ':' + encrypted,
+        category: page.category,
+        tasks: page.tasks,
+        igBusinessId: page.igBusinessId,
+        igUsername: page.igUsername,
+      };
+    });
+    
+    user = new User({
+      userId,
+      userName: userData.userName,
+      email: userData.email,
+      metaUserId: userData.metaUserId,
+      permissions: userData.permissions || [],
+      tokenExpiry,
+      tokenRefreshedAt: new Date(),
+      isActive: true,
+      lastActivity: new Date(),
+      dataRetentionConsent: new Date(),
+      pages: encryptedPages,
+      activePageId: userData.pages.length > 0 ? userData.pages[0].pageId : undefined,
+      // Legacy fields for backwards compatibility
+      pageId: userData.pages.length > 0 ? userData.pages[0].pageId : undefined,
+      pageName: userData.pages.length > 0 ? userData.pages[0].pageName : undefined,
+      igBusinessId: userData.pages.length > 0 ? userData.pages[0].igBusinessId : undefined,
+      igUsername: userData.pages.length > 0 ? userData.pages[0].igUsername : undefined,
+    });
+    
+    // Encrypt and store the user-level token
+    user.setEncryptedToken(userData.accessToken);
+    
+    await user.save();
+  }
+
+  // Return user without sensitive data
+  const userWithoutSensitiveData = await User.findById(user._id);
+  if (!userWithoutSensitiveData) {
+    throw new Error('Failed to retrieve stored user');
+  }
+  return userWithoutSensitiveData;
+}
+
+// Helper to get encryption key
+function getEncryptionKey(): Buffer {
+  const keyString = process.env.TOKEN_ENCRYPTION_KEY || 'default-fallback-key-32-chars-long';
+  if (keyString.length !== 64) {
+    console.warn('TOKEN_ENCRYPTION_KEY should be 64 hex characters (32 bytes)');
+  }
+  let keyBuffer: Buffer;
+  if (/^[0-9a-fA-F]{64}$/.test(keyString)) {
+    keyBuffer = Buffer.from(keyString, 'hex');
+  } else {
+    keyBuffer = crypto.createHash('sha256').update(keyString).digest();
+  }
+  return keyBuffer;
+}
+
+/**
  * Get user's valid token from database
  * Returns null if token is expired or user not found
  */
@@ -171,13 +321,22 @@ export async function getUserToken(userId: string): Promise<IUser | null> {
 export async function getUserByEmail(email: string): Promise<{
   user: IUser;
   accessToken: string;
+  activePage?: {
+    pageId: string;
+    pageName: string;
+    pageToken: string;
+    category?: string;
+    tasks?: string[];
+    igBusinessId?: string;
+    igUsername?: string;
+  };
 } | null> {
   await connectToDatabase();
 
   const user = await User.findOne({ 
     email, 
     isActive: true 
-  }).select('+encryptedAccessToken');
+  }).select('+encryptedAccessToken +pages');
 
   if (!user) {
 
@@ -203,11 +362,33 @@ export async function getUserByEmail(email: string): Promise<{
     return null;
   }
 
+  // Get active page information if available
+  let activePage;
+  if (user.activePageId && user.pages && user.pages.length > 0) {
+    const page = user.pages.find(p => p.pageId === user.activePageId);
+    if (page) {
+      try {
+        const pageToken = user.getDecryptedPageToken(user.activePageId);
+        activePage = {
+          pageId: page.pageId,
+          pageName: page.pageName,
+          pageToken,
+          category: page.category,
+          tasks: page.tasks,
+          igBusinessId: page.igBusinessId,
+          igUsername: page.igUsername
+        };
+      } catch (error) {
+        console.error(`Failed to decrypt page token for ${email}:`, error);
+      }
+    }
+  }
+
   // Update last activity
   user.lastActivity = new Date();
   await user.save();
 
-  return { user, accessToken };
+  return { user, accessToken, activePage };
 }
 
 /**

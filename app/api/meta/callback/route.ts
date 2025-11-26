@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import axios from "axios";
-import { generateUserId, storeUserToken } from "@/lib/token-manager";
+import { generateUserId, storeUserPages } from "@/lib/token-manager";
 
 export async function GET(req: NextRequest) {
   const code = req.nextUrl.searchParams.get("code");
@@ -77,15 +77,49 @@ export async function GET(req: NextRequest) {
     console.log("Step 4: Fetching Facebook pages...");
     console.log("Token being used:", longToken.substring(0, 20) + "...");
     
+    // Try fetching with limit to get all pages
     const pagesRes = await axios.get(
-      `https://graph.facebook.com/me/accounts?fields=id,name,access_token,category,tasks&access_token=${longToken}`
+      `https://graph.facebook.com/me/accounts?fields=id,name,access_token,category,tasks&limit=100&access_token=${longToken}`
     );
 
     console.log("Pages API Response:", JSON.stringify(pagesRes.data, null, 2));
     console.log("Total pages found:", pagesRes.data.data?.length || 0);
     
+    // Also check what pages the app has access to via permissions
+    try {
+      console.log("Checking app-level page access via business discovery...");
+      const businessPages = await axios.get(
+        `https://graph.facebook.com/me?fields=accounts.limit(100){id,name,category}&access_token=${longToken}`
+      );
+      console.log("Business pages accessible:", JSON.stringify(businessPages.data, null, 2));
+    } catch (bizErr) {
+      console.warn("Could not fetch business pages:", bizErr instanceof Error ? bizErr.message : bizErr);
+    }
+    
     // Debug: Also try fetching with different fields
     if (!pagesRes.data.data || pagesRes.data.data.length === 0) {
+      // Extra debugging: inspect token and try user-scoped accounts call with perms
+      try {
+        console.log("Running debug_token to inspect the access token details...");
+        const appAccessToken = `${process.env.META_APP_ID}|${process.env.META_APP_SECRET}`;
+        const debugRes = await axios.get(
+          `https://graph.facebook.com/debug_token?input_token=${longToken}&access_token=${appAccessToken}`
+        );
+        console.log("debug_token response:", JSON.stringify(debugRes.data, null, 2));
+      } catch (dbgErr) {
+        console.warn("debug_token call failed:", dbgErr instanceof Error ? dbgErr.message : dbgErr);
+      }
+
+      try {
+        console.log("Trying alternate user-scoped accounts call with perms field...");
+        const userAccountsRes = await axios.get(
+          `https://graph.facebook.com/${userRes.data.id}/accounts?fields=id,name,access_token,perms,category&access_token=${longToken}`
+        );
+        console.log("User accounts (with perms) response:", JSON.stringify(userAccountsRes.data, null, 2));
+      } catch (uErr) {
+        console.warn("User accounts (with perms) call failed:", uErr instanceof Error ? uErr.message : uErr);
+      }
+
       console.log("Trying alternate API call with basic fields...");
       try {
         const altRes = await axios.get(
@@ -114,28 +148,6 @@ export async function GET(req: NextRequest) {
       return NextResponse.redirect(url);
     }
 
-    const pageData = pagesRes.data.data[0];
-    const pageId = pageData.id;
-
-    console.log("Step 5: Processing first page:", pageData);
-
-    let igBusinessId = null;
-
-    try {
-      console.log("Step 6: Fetching Instagram Business Account...");
-      const igRes = await axios.get(
-        `https://graph.facebook.com/${pageId}?fields=instagram_business_account&access_token=${longToken}`
-      );
-
-      igBusinessId = igRes.data.instagram_business_account?.id;
-      console.log("Instagram Business ID:", igBusinessId || "Not found");
-    } catch (igError) {
-      console.warn(
-        "Instagram Business Account lookup failed:",
-        igError instanceof Error ? igError.message : igError
-      );
-    }
-
     const sessionUserId = req.cookies.get("userId")?.value;
     const stateUserId = state;
     const userId = stateUserId || sessionUserId || generateUserId(req);
@@ -152,30 +164,56 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    let igUsername = null;
-    if (igBusinessId) {
-      try {
-        console.log("Step 7: Fetching Instagram username...");
-        const igUserRes = await axios.get(
-          `https://graph.facebook.com/${igBusinessId}?fields=username&access_token=${longToken}`
-        );
-        igUsername = igUserRes.data.username;
-        console.log("Instagram Username:", igUsername);
-      } catch (error) {
-        console.warn(
-          "Could not fetch Instagram username:",
-          error instanceof Error ? error.message : error
-        );
-      }
-    }
+    console.log(`Step 6: Processing all ${pagesRes.data.data.length} page(s)...`);
+    
+    // Fetch Instagram accounts for all pages
+    const pagesWithInstagram = await Promise.all(
+      pagesRes.data.data.map(async (page: any) => {
+        let igBusinessId = null;
+        let igUsername = null;
+        
+        try {
+          const igRes = await axios.get(
+            `https://graph.facebook.com/${page.id}?fields=instagram_business_account&access_token=${longToken}`
+          );
+          igBusinessId = igRes.data.instagram_business_account?.id;
+          
+          if (igBusinessId) {
+            try {
+              const igUserRes = await axios.get(
+                `https://graph.facebook.com/${igBusinessId}?fields=username&access_token=${longToken}`
+              );
+              igUsername = igUserRes.data.username;
+            } catch (error) {
+              console.warn(`Could not fetch Instagram username for page ${page.name}:`, error instanceof Error ? error.message : error);
+            }
+          }
+        } catch (igError) {
+          console.warn(`Instagram lookup failed for page ${page.name}:`, igError instanceof Error ? igError.message : igError);
+        }
+        
+        return {
+          pageId: page.id,
+          pageName: page.name,
+          pageToken: page.access_token,
+          category: page.category,
+          tasks: page.tasks,
+          igBusinessId: igBusinessId || undefined,
+          igUsername: igUsername || undefined,
+        };
+      })
+    );
+    
+    console.log("Pages with Instagram data:", pagesWithInstagram.map(p => ({
+      name: p.pageName,
+      hasInstagram: !!p.igBusinessId,
+      igUsername: p.igUsername
+    })));
 
-    console.log("Step 8: Storing user token...");
-    await storeUserToken(userId, {
+    console.log("Step 7: Storing user with multiple pages...");
+    await storeUserPages(userId, {
       accessToken: longToken,
-      pageId: pageId,
-      pageName: pageData.name,
-      igBusinessId: igBusinessId || undefined,
-      igUsername: igUsername || undefined,
+      pages: pagesWithInstagram,
       userName: userRes.data.name,
       email: userRes.data.email,
       metaUserId: userRes.data.id,

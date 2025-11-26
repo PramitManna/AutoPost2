@@ -10,6 +10,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { UserNavbar } from '@/components/UserNavbar';
 import { useAuth } from '@/context/AuthContext';
+import { ConnectionStatus } from '@/components/ConnectionStatus';
 import { cancelUploadWorkflow } from '@/lib/cancel-workflow';
 import { getWorkflowSession, validateWorkflowStage, clearWorkflowSession } from '@/lib/workflow-session';
 import { SiFacebook, SiInstagram } from 'react-icons/si';
@@ -19,7 +20,7 @@ function PublishPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const connected = searchParams.get('connected');
-  const { user, isAuthenticated, loading: authLoading } = useAuth();
+  const { user, isAuthenticated, loading: authLoading, userId } = useAuth();
 
   const [workflow, setWorkflow] = useState<WorkflowData | null>(null);
   const [loading, setLoading] = useState(false);
@@ -271,6 +272,13 @@ function PublishPageContent() {
               Preview your post and choose where to publish.
             </p>
           </div>
+
+          {/* Connection Status */}
+          {userId && (
+            <div className="mb-6">
+              <ConnectionStatus userId={userId} />
+            </div>
+          )}
 
           {error && (
             <motion.div

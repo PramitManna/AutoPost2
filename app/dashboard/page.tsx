@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { UserNavbar } from '@/components/UserNavbar';
 import { useAuth } from '@/context/AuthContext';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
+import { ConnectionStatus } from '@/components/ConnectionStatus';
 
 function DashboardPageContent() {
   const router = useRouter();
@@ -230,7 +231,9 @@ function DashboardPageContent() {
           </div>
 
           {/* Meta Connection Status */}
-          {hasMetaTokens ? (
+          {hasMetaTokens && userId ? (
+            <ConnectionStatus userId={userId} />
+          ) : hasMetaTokens ? (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}

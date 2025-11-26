@@ -35,23 +35,27 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { accessToken, user } = await tokenResponse.json();
+    const { accessToken, user, activePage } = await tokenResponse.json();
     
-    if (!accessToken || !user.pageId) {
+    // Use active page if available, otherwise fall back to legacy user fields
+    const pageId = activePage?.pageId || user.pageId;
+    const pageName = activePage?.pageName || user.pageName;
+    const pageToken = activePage?.pageToken || accessToken;
+    
+    if (!pageToken || !pageId) {
       return NextResponse.json(
         { error: "Invalid token or no Facebook page connected" },
         { status: 401 }
       );
     }
 
-    console.log(`✅ Publishing to page: ${user.pageName} for user: ${userEmail}`);
+    console.log(`✅ Publishing to page: ${pageName} for user: ${userEmail}`);
 
-    const { pageId } = user;
 
 
     // Step 1: Get Page Access Token
     const pageTokenRes = await axios.get(
-      `https://graph.facebook.com/v21.0/${pageId}?fields=access_token&access_token=${accessToken}`
+      `https://graph.facebook.com/v21.0/${pageId}?fields=access_token&access_token=${pageToken}`
     );
 
     const pageAccessToken = pageTokenRes.data.access_token;

@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
       }, { status: 404 });
     }
     
-    const { user, accessToken } = result;
+    const { user, accessToken, activePage } = result;
     
 
     
@@ -46,7 +46,8 @@ export async function POST(req: NextRequest) {
         igUsername: user.igUsername,
         permissions: user.permissions,
         lastActivity: user.lastActivity
-      }
+      },
+      activePage: activePage || null
     });
     
     // Add security headers
@@ -97,7 +98,8 @@ export async function GET(req: NextRequest) {
         igBusinessId: result.user.igBusinessId,
         igUsername: result.user.igUsername,
         lastActivity: result.user.lastActivity
-      } : null
+      } : null,
+      activePage: result?.activePage || null
     });
     
     // Add security headers

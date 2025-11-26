@@ -14,6 +14,19 @@ export interface IUser extends Document {
   igBusinessId?: string;
   igUsername?: string; // Instagram username if available
   permissions?: string[]; // Store granted permissions for audit
+  
+  // Multiple pages support
+  pages?: Array<{
+    pageId: string;
+    pageName: string;
+    encryptedPageToken: string; // Each page has its own token
+    category?: string;
+    tasks?: string[];
+    igBusinessId?: string;
+    igUsername?: string;
+  }>;
+  activePageId?: string; // Currently selected page for posting
+  
   lastActivity?: Date; // Track user activity for cleanup
   isActive: boolean; // Flag for active/inactive users
   dataRetentionConsent?: Date; // GDPR compliance - when user consented
@@ -23,6 +36,9 @@ export interface IUser extends Document {
   // Virtual methods
   getDecryptedToken(): string;
   setEncryptedToken(token: string): void;
+  getDecryptedPageToken(pageId: string): string;
+  setEncryptedPageToken(pageId: string, token: string): void;
+  getActivePage(): any;
   isTokenExpired(): boolean;
   needsTokenRefresh(): boolean;
 }
@@ -95,6 +111,32 @@ const UserSchema: Schema = new Schema(
       type: String,
       trim: true,
     }],
+    
+    // Multiple pages support
+    pages: [{
+      pageId: {
+        type: String,
+        required: true,
+      },
+      pageName: {
+        type: String,
+        required: true,
+      },
+      encryptedPageToken: {
+        type: String,
+        required: true,
+        select: false, // Don't include by default for security
+      },
+      category: String,
+      tasks: [String],
+      igBusinessId: String,
+      igUsername: String,
+    }],
+    activePageId: {
+      type: String,
+      index: true,
+    },
+    
     lastActivity: {
       type: Date,
       default: Date.now,
@@ -171,6 +213,48 @@ UserSchema.methods.needsTokenRefresh = function(): boolean {
   const sevenDaysFromNow = new Date();
   sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
   return this.tokenExpiry < sevenDaysFromNow;
+};
+
+// Methods for page token management
+UserSchema.methods.getDecryptedPageToken = function(pageId: string): string {
+  const page = this.pages?.find((p: any) => p.pageId === pageId);
+  if (!page || !page.encryptedPageToken) {
+    throw new Error(`No encrypted token found for page ${pageId}`);
+  }
+  
+  const [ivHex, encryptedHex] = page.encryptedPageToken.split(':');
+  const iv = Buffer.from(ivHex, 'hex');
+  const key = getEncryptionKey();
+  const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
+  
+  let decrypted = decipher.update(encryptedHex, 'hex', 'utf8');
+  decrypted += decipher.final('utf8');
+  
+  return decrypted;
+};
+
+UserSchema.methods.setEncryptedPageToken = function(pageId: string, token: string): void {
+  const iv = crypto.randomBytes(16);
+  const key = getEncryptionKey();
+  const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
+  
+  let encrypted = cipher.update(token, 'utf8', 'hex');
+  encrypted += cipher.final('hex');
+  
+  const encryptedToken = iv.toString('hex') + ':' + encrypted;
+  
+  // Find and update the page's token
+  const page = this.pages?.find((p: any) => p.pageId === pageId);
+  if (page) {
+    page.encryptedPageToken = encryptedToken;
+  }
+};
+
+UserSchema.methods.getActivePage = function() {
+  if (!this.activePageId || !this.pages || this.pages.length === 0) {
+    return null;
+  }
+  return this.pages.find((p: any) => p.pageId === this.activePageId);
 };
 
 // Compound indexes for faster queries and cleanup

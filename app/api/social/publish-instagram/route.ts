@@ -26,16 +26,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { accessToken, user } = await tokenResponse.json();
+    const { accessToken, user, activePage } = await tokenResponse.json();
 
-    if (!accessToken || !user.igBusinessId) {
+    // Use active page if available, otherwise fall back to legacy user fields
+    const igBusinessId = activePage?.igBusinessId || user.igBusinessId;
+    const pageToken = activePage?.pageToken || accessToken;
+
+    if (!pageToken || !igBusinessId) {
       return NextResponse.json(
         { error: "No Instagram Business account connected. Please connect one from your Facebook page." },
         { status: 400 }
       );
     }
 
-    const { igBusinessId } = user;
     
 
 
@@ -50,7 +53,7 @@ export async function POST(req: NextRequest) {
       },
       {
         headers: {
-          'Authorization': `Bearer ${accessToken}`,
+          'Authorization': `Bearer ${pageToken}`,
           'Content-Type': 'application/json',
         },
       }
@@ -76,7 +79,7 @@ export async function POST(req: NextRequest) {
           },
           {
             headers: {
-              'Authorization': `Bearer ${accessToken}`,
+              'Authorization': `Bearer ${pageToken}`,
               'Content-Type': 'application/json',
             },
           }

@@ -9,6 +9,8 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { UserNavbar } from '@/components/UserNavbar';
 import { useAuth } from '@/context/AuthContext';
+import { PageSelector } from '@/components/PageSelector';
+import { ConnectionStatus } from '@/components/ConnectionStatus';
 import { cancelUploadWorkflow } from '@/lib/cancel-workflow';
 import {
   generateSessionId,
@@ -22,7 +24,7 @@ function UploadPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const connected = searchParams.get('connected');
-  const { isAuthenticated, hasMetaTokens, loading: authLoading } = useAuth();
+  const { isAuthenticated, hasMetaTokens, loading: authLoading, userId } = useAuth();
 
   const [uploadedImages, setUploadedImages] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
@@ -208,6 +210,14 @@ function UploadPageContent() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
+          {/* Page Selector */}
+          {userId && (
+            <div className="mb-6">
+              <ConnectionStatus userId={userId} />
+              <PageSelector userId={userId} />
+            </div>
+          )}
+
           <div className="mb-8 text-center">
             <h1 className="text-3xl font-bold text-zinc-900 dark:text-zinc-50 mb-3 tracking-tight">Upload Images</h1>
             <p className="text-zinc-500 dark:text-zinc-400 max-w-md mx-auto">
